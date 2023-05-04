@@ -1,0 +1,17 @@
+#!/bin/bash
+
+OWNER=${1}
+TOPICS=${2:-helm-release}
+WORKFLOW=${3:-apply}
+
+
+for REPO in $(gh search repos "org:${OWNER}" "${TOPICS} in:topics" --limit 100 --json name --jq '.[] | .name'); do
+  CMD="gh workflow run ${WORKFLOW} --repo ${OWNER}/${REPO}"
+  if gh workflow view "${WORKFLOW}" --repo "${OWNER}/${REPO}" > /dev/null 2>&1; then
+    if [[ ${DEBUG} == "true" ]]; then
+      echo "${CMD}"
+    else
+      /bin/bash -c "${CMD}"
+    fi
+  fi
+done
