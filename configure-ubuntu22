@@ -12,10 +12,10 @@ apt-get install -y vim virtualbox remmina-* git python3-pip make build-essential
         liblzma-dev flameshot golang-go golang-src csvkit calibre lua5.1 luarocks
 
 
-# Kubectl
+## Kubectl
 KEY=$(build_key_name google-cloud-packages)
-curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor > $KEY
-apt-add-repository "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" 
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor > "$KEY"
+apt-add-repository "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main"
 apt-add-repository "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main"
 
 # Helm
@@ -23,7 +23,7 @@ KEY=$(build_key_name helm)
 curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor > "${KEY}"
 apt-add-repository "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main"
 
-# MongoDB 
+# MongoDB
 KEY=$(build_key_name mongodb)
 curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > "${KEY}"
 apt-add-repository "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse"
@@ -55,26 +55,31 @@ apt-add-repository "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft
 
 # Spotify
 KEY=$(build_key_name spotify)
-curl -fsSL https://download.spotify.com/debian/pubkey_5E3C45D7B312C643.gpg | gpg --dearmor > ${KEY}
-apt-add-repository "deb [signed-by=${KEY}] https://repository.spotify.com stable non-free"
+curl -fsSL https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg | gpg --dearmor > "${KEY}"
+apt-add-repository "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free"
 
 # Powershell
-wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb
 dpkg -i packages-microsoft-prod.deb
-rm -rf packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+
+wget -q https://github.com/balena-io/etcher/releases/download/v1.18.8/balena-etcher_1.18.8_amd64.deb
+dpkg -i balena-etcher_1.18.8_amd64.deb
+rm balena-etcher_1.18.8_amd64.deb
 
 # NodeJS
 curl -sL https://deb.nodesource.com/setup_18.x | bash -
-apt-get -y install
 
 apt-get update 
 add-apt-repository universe
 apt-get install -y spotify-client azure-cli pgadmin4 postgresql-client-12 docker-ce docker-ce-cli containerd.io \
         docker-compose terraform vault helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh \
-        mongodb-database-tools nodejs
+        mongodb-database-tools nodejs google-chrome-stable
 
 npm install -g ncc yarn
 pip3 install pipenv
+
+# GIT
 git config --global core.editor "vim"
 git config --global push.autoSetupRemote true
 
