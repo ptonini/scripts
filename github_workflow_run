@@ -1,9 +1,9 @@
 #!/bin/bash
+set -e
 
-OWNER=${1}
+OWNER=${1?owner is required}
 TOPICS=${2:-helm-release}
 WORKFLOW=${3:-apply}
-
 
 for REPO in $(gh search repos "org:${OWNER}" "${TOPICS} in:topics" --limit 100 --json name --jq '.[] | .name'); do
   CMD="gh workflow run ${WORKFLOW} --repo ${OWNER}/${REPO}"

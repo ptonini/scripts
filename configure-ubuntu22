@@ -1,0 +1,95 @@
+#!/bin/bash
+set -e
+
+build_key_name () {
+    echo /usr/share/keyrings/${1}-archive-keyring.gpg
+}
+
+# Pré-requisitos
+apt-get install -y vim virtualbox remmina-* git python3-pip make build-essential libssl-dev zlib1g-dev libbz2-dev \
+        libreadline-dev libsqlite3-dev curl libffi-dev apt-transport-https gnupg2 bash-completion gnupg-agent \
+        software-properties-common ncdu jq python3-gi python3-gi-cairo gir1.2-gtk-3.0 openssh-server lsb-release \
+        liblzma-dev flameshot golang-go golang-src csvkit calibre lua5.1 luarocks
+
+
+# Kubectl
+KEY=$(build_key_name google-cloud-packages)
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor > $KEY
+apt-add-repository "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" 
+apt-add-repository "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main"
+
+# Helm
+KEY=$(build_key_name helm)
+curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor > "${KEY}"
+apt-add-repository "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main"
+
+# MongoDB 
+KEY=$(build_key_name mongodb)
+curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor > "${KEY}"
+apt-add-repository "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse"
+
+# Hashicorp
+KEY=$(build_key_name hashicorp)
+curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor > "${KEY}"
+apt-add-repository "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com jammy main"
+
+# Docker
+KEY=$(build_key_name docker)
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor > "${KEY}"
+add-apt-repository "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu jammy stable"
+
+# Postgres
+KEY=$(build_key_name postgres)
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor > "${KEY}"
+apt-add-repository "deb [arch=amd64 signed-by=${KEY}] http://apt.postgresql.org/pub/repos/apt jammy-pgdg main"
+
+# PgAdmin
+KEY=$(build_key_name pgadmin)
+curl -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub | gpg --dearmor > "${KEY}"
+apt-add-repository "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/jammy pgadmin4 main"
+
+# Azure CLI
+KEY=$(build_key_name azure)
+curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > "${KEY}"
+apt-add-repository "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ jammy main"
+
+# Spotify
+KEY=$(build_key_name spotify)
+curl -fsSL https://download.spotify.com/debian/pubkey_5E3C45D7B312C643.gpg | gpg --dearmor > ${KEY}
+apt-add-repository "deb [signed-by=${KEY}] https://repository.spotify.com stable non-free"
+
+# Powershell
+wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+dpkg -i packages-microsoft-prod.deb
+rm -rf packages-microsoft-prod.deb
+
+# NodeJS
+curl -sL https://deb.nodesource.com/setup_18.x | bash -
+apt-get -y install
+
+apt-get update 
+add-apt-repository universe
+apt-get install -y spotify-client azure-cli pgadmin4 postgresql-client-12 docker-ce docker-ce-cli containerd.io \
+        docker-compose terraform vault helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh \
+        mongodb-database-tools nodejs
+
+npm install -g ncc yarn
+pip3 install pipenv
+git config --global core.editor "vim"
+git config --global push.autoSetupRemote true
+
+# Kind
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.14.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+
+# AWS CLI
+wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+unzip awscli-exe-linux-x86_64.zip
+./aws/install --update
+rm -rf aws*
+
+#ZeroTier
+curl -s https://install.zerotier.com | sudo bash
+
+

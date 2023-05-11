@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+
+for ACCESSOR in $(vault list -format=json auth/token/accessors | jq -r '.[]'); do
+  ACCESSOR_USER=$(vault token lookup -format=json -accessor "${ACCESSOR}" 2> /dev/null | jq -r '.data.meta.username')
+  if [[ ${ACCESSOR_USER} == "${USER}" ]]; then
+    echo "revoking ${ACCESSOR}"
+    vault token revoke -accessor "${ACCESSOR}"
+  fi
+done

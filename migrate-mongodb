@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -e
+
+SOURCE_USER=""
+SOURCE_PASSWORD=""
+
+DEST_USER=""
+DEST_PASSWORD=""
+
+CLUSTER_PAIRS=(
+    "nodis-prod-azure-genera.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
+    "nodis-prod-azure-order.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
+    "nodis-prod-azure-skusel.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
+    "nodis-prod-azure-events.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
+)
+
+
+for PAIR in "${CLUSTER_PAIRS[@]}"; do
+
+    SOURCE_CLUSTER=$(echo "${PAIR}" | awk -F, '{print $1}')
+    DEST_CLUSTER=$(echo "${PAIR}" | awk -F, '{print $2}')
+
+    mongodump --uri "mongodb+srv://${SOURCE_USER}:${SOURCE_PASSWORD}@${SOURCE_CLUSTER}" --gzip -o "${SOURCE_CLUSTER}"
+
+    rm -rf "${SOURCE_CLUSTER}/admin"
+    rm -rf "${SOURCE_CLUSTER}/local"
+    rm -rf "${SOURCE_CLUSTER}/config"
+
+    mongorestore --uri "mongodb+srv://${DEST_USER}:${DEST_PASSWORD}@${DEST_CLUSTER}" --drop --gzip "${SOURCE_CLUSTER}"
+
+done

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+
+PROFILES=$(aws configure list-profiles)
+
+for PROFILE in ${PROFILES}; do
+
+  export AWS_PROFILE=${PROFILE}
+
+  for REGION in $(aws ec2 describe-regions --region us-east-1 | jq -r '.Regions[].RegionName'); do
+
+    echo "* ${PROFILE} ${REGION}"
+    export AWS_REGION=${REGION}
+
+    VPC=$(aws ec2 describe-vpcs --filter Name=isDefault,Values=true | jq -r '.Vpcs[0].VpcId')
+
+    if [[ ${VPC} != "null" ]]; then
+      echo "Found ${VPC}"
+      IGW=$(aws ec2 describe-internet-gateways --filter "Name=attachment.vpc-id,Values=${VPC}" | jq -r '.InternetGateways[0].InternetGatewayId')
+      if [[ ${IGW} != "null" ]]; then
+        echo "Detaching and deleting ${IGW}"
+        aws ec2 detach-internet-gateway --internet-gateway-id "${IGW}" --vpc-id "${VPC}"
+        aws ec2 delete-internet-gateway --internet-gateway-id "${IGW}"
+      fi
+      SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC}" | jq -r '.Subnets[].SubnetId')
+      if [[ $(wc -l <<< "${SUBNETS}") -gt 0 ]]; then
+        for SUBNET in ${SUBNETS}; do
+          echo "Deleting ${SUBNET}"
+          aws ec2 delete-subnet --subnet-id "${SUBNET}"
+        done
+      fi
+      echo "Deleting ${VPC}"
+      aws ec2 delete-vpc --vpc-id "${VPC}"
+    fi
+
+    if [[ $(aws ec2 get-ebs-encryption-by-default | jq -r '.EbsEncryptionByDefault' ) != "true" ]]; then
+      echo "Enabling EBS encryption by default"
+      aws ec2 enable-ebs-encryption-by-default > /dev/null
+    fi
+
+  done
+
+done
+

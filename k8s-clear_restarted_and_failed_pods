@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+ENVS=(
+    dev
+    prod
+    catalog
+    backstage
+    quality
+    backoffice
+)
+
+for ENV in "${ENVS[@]}"; do
+
+    kubectl config use ${ENV}
+    kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.status.phase != "Running" and .status.phase != "Pending" and .status.phase != "Succeeded") | [.metadata.name,"-n",.metadata.namespace] | @csv' | sed 's/,/ /g' | xargs -l kubectl delete pod $1
+    kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.status.containerStatuses[0].restartCount != 0) | [.metadata.name,"-n",.metadata.namespace] | @csv' | sed 's/,/ /g' | xargs -l kubectl delete pod $1
+    [[ ${ENV} == "prod" ]] && kubectl rollout restart deployment/api-gateway -n default
+
+done

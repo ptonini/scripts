@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+DEFAULT_NETWORK_NAME=default
+
+MINIMUM_APIS=(
+    compute.googleapis.com
+)
+
+TERRAFORM_APIS=(
+    iam.googleapis.com
+    accesscontextmanager.googleapis.com
+    cloudresourcemanager.googleapis.com
+)
+
+for PROJECT in $(gcloud projects list --filter="labels.hardened:true" --format=json | jq -r '.[] | .projectId'); do
+
+    for API in "${MINIMUM_APIS[@]}"; do
+        echo enabling api "${PROJECT}" "${API}"
+        gcloud services enable --project "${PROJECT}" "${API}"
+    done
+
+    for RULE in $(gcloud compute firewall-rules list --filter="network:https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/networks/${DEFAULT_NETWORK_NAME}"  --project "${PROJECT}" --format=json | jq -r '.[] | .name'); do
+        echo deleting rule "${PROJECT}" "${RULE}"
+        gcloud compute firewall-rules delete --quiet --project "${PROJECT}" "${RULE}"
+    done
+
+    for NET in $(gcloud compute networks list --project "${PROJECT}" --filter="name:${DEFAULT_NETWORK_NAME}" --format=json | jq -r '.[] | .name'); do
+        echo deleting network "${PROJECT}" "${NET}"
+        gcloud compute networks delete --quiet --project "${PROJECT}" "${NET}"
+    done
+
+done
+
+
+for PROJECT in $(gcloud projects list --filter="labels.terraform:true" --format=json | jq -r '.[] | .projectId'); do
+
+    for API in "${TERRAFORM_APIS[@]}"; do
+        echo enabling api "${PROJECT}" "${API}"
+        gcloud services enable --project "${PROJECT}" "${API}"
+    done
+
+done
