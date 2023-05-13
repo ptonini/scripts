@@ -1,5 +1,0 @@
-#!/bin/bash
-
-if [[ $(vault token lookup -format=json | jq '.data.ttl') -lt 86400  ]]; then
-  vault login -method=github "token=$GH_TOKEN"
-fi
