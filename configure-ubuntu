@@ -15,7 +15,6 @@ build_key_name () {
 
 sudo add-apt-repository -y ppa:git-core/ppa
 sudo add-apt-repository -y universe
-sudo apt-get update
 sudo apt-get upgrade -y
 sudo apt-get install -y curl vim jq virtualbox git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks \
         make build-essential apt-transport-https openssh-server bash-completion csvkit ncdu libsqlite3-dev gnupg-agent \
@@ -26,71 +25,75 @@ sudo pip3 install --upgrade pipenv
 # GitHub CLI
 KEY=$(build_key_name githubcli)
 curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=$(dpkg --print-architecture) signed-by=${KEY}] https://cli.github.com/packages stable main" | sudo tee "/etc/apt/sources.list.d/githubcli.list"
+echo "deb [arch=$(dpkg --print-architecture) signed-by=${KEY}] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/githubcli.list
 
 # Azure CLI
 KEY=$(build_key_name azure)
 curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/azure.list"
+echo "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" | sudo tee /etc/apt/sources.list.d/azure.list
 
 # Google Chrome
 KEY=$(build_key_name google-chrome)
 curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee "/etc/apt/sources.list.d/google-chrome.list"
+echo "deb [arch=amd64 signed-by=${KEY}] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
 
 ## Google Packages
 KEY=$(build_key_name google-cloud-packages)
-curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor | sudo tee "$KEY" > /dev/null
-echo "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee "/etc/apt/sources.list.d/google-cloud-packages.list"
-echo "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a "/etc/apt/sources.list.d/google-cloud-packages.list"
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+echo "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/google-cloud-packages.list
+echo "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-packages.list
 
 # Helm
 KEY=$(build_key_name helm)
 curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee "/etc/apt/sources.list.d/helm.list"
+echo "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm.list
 
 # MongoDB
 KEY=$(build_key_name mongodb)
 curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/6.0 multiverse" | sudo tee "/etc/apt/sources.list.d/mongodb.list"
+echo "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb.list
 
 # Hashicorp
 KEY=$(build_key_name hashicorp)
 curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/hashicorp.list"
+echo "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 
 # Docker
 KEY=$(build_key_name docker)
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" | sudo tee "/etc/apt/sources.list.d/docker.list"
+echo "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" | sudo tee /etc/apt/sources.list.d/docker.list
 
 # Postgres
 KEY=$(build_key_name postgres)
 curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" | sudo tee "/etc/apt/sources.list.d/postgres.list"
+echo "deb [arch=amd64 signed-by=${KEY}] https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" | sudo tee /etc/apt/sources.list.d/postgres.list
 
 # PgAdmin
 KEY=$(build_key_name pgadmin)
 curl -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" | sudo tee "/etc/apt/sources.list.d/pgadmin.list"
+echo "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" | sudo tee /etc/apt/sources.list.d/pgadmin.list
 
 # Spotify
 KEY=$(build_key_name spotify)
 curl -fsSL https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free" | sudo tee "/etc/apt/sources.list.d/spotify.list"
-
-# NodeJS
-curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
+echo "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
 
 # Yarn
 KEY=$(build_key_name yarn)
 curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://dl.yarnpkg.com/debian stable main"  | sudo tee "/etc/apt/sources.list.d/yarn.list"
+echo "deb [signed-by=${KEY}] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 
-sudo apt-get update
+# Lens
+KEY=$(build_key_name lens)
+curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+echo "deb [arch=amd64 signed-by=${KEY}] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee /etc/apt/sources.list.d/lens.list
+
+# NodeJS
+curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
+
 sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools \
         docker-compose terraform azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh \
-        google-chrome-stable yarn gh
+        google-chrome-stable yarn gh lens
 sudo npm install -g ncc
 sudo npm update -g
 
@@ -110,7 +113,7 @@ rm etcher.deb*
 # Kind
 wget -qO kind "https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-linux-amd64"
 chmod +x kind
-sudo mv kind /usr/local/bin/kind
+sudo mv -v kind /usr/local/bin/kind
 
 # AWS CLI
 wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
