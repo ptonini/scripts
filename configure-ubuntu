@@ -111,6 +111,11 @@ sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docke
 sudo npm install -g ncc
 sudo npm update -g
 
+# VSCode
+wget -qO vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+sudo apt-get install -y ./vscode.deb
+rm vscode.deb*
+
 # Powershell
 wget -q "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
 sudo apt-get install -y ./packages-microsoft-prod.deb
