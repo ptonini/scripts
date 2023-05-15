@@ -1,27 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-DUMP_FOLDER=/data/psql_dump
+mkdir  "${DUMP_FOLDER}" || true
 
-DATABASES=(
-   keycloak
-)
+echo "$(date) dumping database ${DATABASE} from source"
+PGPASSWORD=${SOURCE_PASSWD} PGSSLMODE=require pg_dump -c -C -v -O -x -f "${DUMP_FOLDER}/${DATABASE}.sql" -U "${SOURCE_USER}" -d "${DATABASE}" -h "${SOURCE_HOST}"
+echo "$(date) finished dumping database ${DATABASE}"
 
-mkdir "${ROOT_FOLDER}" || true
+echo "$(date) restoring database ${DATABASE} in destiny"
+PGPASSWORD=${DEST_PASSWD} psql "sslmode=require user=${DEST_USER} dbname=postgres host=${DEST_HOST}" < "${DUMP_FOLDER}/${DATABASE}.sql"
+PGPASSWORD=${DEST_PASSWD} psql "sslmode=require user=${DEST_USER} dbname=${DATABASE} host=${DEST_HOST}" -c "REASSIGN OWNED BY ${USER} TO ${DEST_OWNER};"
+echo "$(date) finished moving database ${DATABASE}"
 
-echo "$(date) starting"
-for DATABASE in "${DATABASES[@]}"; do
 
-  echo "$(date) dumping database ${DATABASE} from source"
-  PGPASSWORD=${SOURCE_PASSWD} PGSSLMODE=require pg_dump -c -C -v -O -x -f "${DUMP_FOLDER}/${DATABASE}.sql" -U "${SOURCE_USER}" -d "${DATABASE}" -h "${SOURCE_HOST}"
-  echo "$(date) finished dumping database ${DATABASE}"
-
-  echo "$(date) restoring database ${DATABASE} in destiny"
-  PGPASSWORD=${DEST_PASSWD} psql "sslmode=require user=${DEST_USER} dbname=postgres host=${DEST_HOST}" < "${DUMP_FOLDER}/${DATABASE}.sql"
-  PGPASSWORD=${DEST_PASSWD} psql "sslmode=require user=${DEST_USER} dbname=${DATABASE} host=${DEST_HOST}" -c "REASSIGN OWNED BY ${USER} TO ${DEST_OWNER};"
-  echo "$(date) finished moving database ${DATABASE}"
-
-done
-echo "$(date) finished"
 
 

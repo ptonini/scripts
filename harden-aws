@@ -19,8 +19,7 @@ for PROFILE in ${PROFILES}; do
       IGW=$(aws ec2 describe-internet-gateways --filter "Name=attachment.vpc-id,Values=${VPC}" | jq -r '.InternetGateways[0].InternetGatewayId')
       if [[ ${IGW} != "null" ]]; then
         echo "Detaching and deleting ${IGW}"
-        aws ec2 detach-internet-gateway --internet-gateway-id "${IGW}" --vpc-id "${VPC}"
-        aws ec2 delete-internet-gateway --internet-gateway-id "${IGW}"
+        aws ec2 detach-internet-gateway --internet-gateway-id "${IGW}" --vpc-id "${VPC}" && aws ec2 delete-internet-gateway --internet-gateway-id "${IGW}"
       fi
       SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC}" | jq -r '.Subnets[].SubnetId')
       if [[ $(wc -l <<< "${SUBNETS}") -gt 0 ]]; then

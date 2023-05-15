@@ -6,6 +6,7 @@ UBUNTU_VERSION=22.04
 NODEJS_VERSION=18
 ETCHER_VERSION=1.18.8
 KIND_VERSION=0.18.0
+MONGODB_VERSION=6.0
 
 build_key_name () {
     echo "/usr/share/keyrings/${1}-archive-keyring.gpg"
@@ -17,76 +18,89 @@ sudo add-apt-repository -y ppa:git-core/ppa
 sudo add-apt-repository -y universe
 sudo apt-get upgrade -y
 sudo apt-get install -y curl vim jq virtualbox git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks \
-        make build-essential apt-transport-https openssh-server bash-completion csvkit ncdu libsqlite3-dev gnupg-agent \
+        ncdu csvkit make build-essential apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent \
         software-properties-common python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service \
         liblzma-dev golang-src lsb-release libffi-dev gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0
-sudo pip3 install --upgrade pipenv
+sudo pip3 install --upgrade pipenv ansible openstacksdk
 
 # GitHub CLI
-KEY=$(build_key_name githubcli)
+REPO=githubcli
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=$(dpkg --print-architecture) signed-by=${KEY}] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/githubcli.list
+echo "deb [arch=amd64 signed-by=${KEY}] https://cli.github.com/packages stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Azure CLI
-KEY=$(build_key_name azure)
+REPO=azure
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" | sudo tee /etc/apt/sources.list.d/azure.list
+echo "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Google Chrome
-KEY=$(build_key_name google-chrome)
+REPO=google-chrome
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+echo "deb [arch=amd64 signed-by=${KEY}] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-## Google Packages
-KEY=$(build_key_name google-cloud-packages)
+# Google Packages
+REPO=google-cloud-packages
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/google-cloud-packages.list
-echo "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-packages.list
+echo "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+echo "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a "/etc/apt/sources.list.d/${REPO}.list"
 
 # Helm
-KEY=$(build_key_name helm)
+REPO=helm
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm.list
+echo "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # MongoDB
-KEY=$(build_key_name mongodb)
-curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb.list
+REPO=mongodb
+KEY=$(build_key_name ${REPO})
+curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+echo "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Hashicorp
-KEY=$(build_key_name hashicorp)
+REPO=hashicorp
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+echo "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Docker
-KEY=$(build_key_name docker)
+REPO=docker
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" | sudo tee /etc/apt/sources.list.d/docker.list
+echo "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Postgres
-KEY=$(build_key_name postgres)
+REPO=postgres
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" | sudo tee /etc/apt/sources.list.d/postgres.list
+echo "deb [arch=amd64 signed-by=${KEY}] https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # PgAdmin
-KEY=$(build_key_name pgadmin)
+REPO=pgadmin
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" | sudo tee /etc/apt/sources.list.d/pgadmin.list
+echo "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Spotify
-KEY=$(build_key_name spotify)
+REPO=spotify
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
+echo "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Yarn
-KEY=$(build_key_name yarn)
+REPO=yarn
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+echo "deb [signed-by=${KEY}] https://dl.yarnpkg.com/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # Lens
-KEY=$(build_key_name lens)
+REPO=lens
+KEY=$(build_key_name ${REPO})
 curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee /etc/apt/sources.list.d/lens.list
+echo "deb [arch=amd64 signed-by=${KEY}] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
 # NodeJS
 curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
@@ -122,7 +136,7 @@ sudo aws/install --update
 rm -rf aws*
 
 # ZeroTier
-curl -fsSL https://install.zerotier.com | sudo bash
+curl -fsSL https://install.zerotier.com | sudo bash || true
 
 sudo apt-get clean
 

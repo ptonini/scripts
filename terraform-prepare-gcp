@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+TERRAFORM_APIS=(
+    iam.googleapis.com
+    accesscontextmanager.googleapis.com
+    cloudresourcemanager.googleapis.com
+)
+
+for PROJECT in $(gcloud projects list --filter="labels.terraform:true" --format=json | jq -r '.[] | .projectId'); do
+
+    for API in "${TERRAFORM_APIS[@]}"; do
+        echo enabling api "${PROJECT}" "${API}"
+        gcloud services enable --project "${PROJECT}" "${API}"
+    done
+
+done

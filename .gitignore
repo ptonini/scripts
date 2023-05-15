@@ -1,1 +1,3 @@
-.idea
+/.idea
+/go.mod
+/go.sum
