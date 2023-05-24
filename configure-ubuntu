@@ -17,7 +17,7 @@ build_key_name () {
 sudo add-apt-repository -y ppa:git-core/ppa
 sudo add-apt-repository -y universe
 sudo apt-get upgrade -y
-sudo apt-get install -y curl vim jq virtualbox git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks \
+sudo apt-get install -y curl vim jq nmap virtualbox git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks \
         ncdu csvkit make build-essential apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent \
         software-properties-common python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service \
         liblzma-dev golang-src lsb-release libffi-dev gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0
