@@ -4,7 +4,6 @@ set -e
 UBUNTU_RELEASE=jammy
 UBUNTU_VERSION=22.04
 NODEJS_VERSION=18
-ETCHER_VERSION=1.18.8
 KIND_VERSION=0.18.0
 MONGODB_VERSION=6.0
 
@@ -121,11 +120,6 @@ wget -q "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages
 sudo apt-get install -y ./packages-microsoft-prod.deb
 rm packages-microsoft-prod.deb*
 
-# Etcher
-wget -qO etcher.deb "https://github.com/balena-io/etcher/releases/download/v${ETCHER_VERSION}/balena-etcher_${ETCHER_VERSION}_amd64.deb"
-sudo apt-get install -y ./etcher.deb
-rm etcher.deb*
-
 # Pyenv
 "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
@@ -144,7 +138,6 @@ rm -rf aws*
 curl -fsSL https://install.zerotier.com | sudo bash || true
 
 sudo apt-get clean
-
 
 # System configuration ################################################################################################
 
