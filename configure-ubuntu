@@ -11,133 +11,137 @@ build_key_name () {
     echo "/usr/share/keyrings/${1}-archive-keyring.gpg"
 }
 
-### Software installation #############################################################################################
+if [[ ${1} != "skip_install"  ]]; then
 
-sudo add-apt-repository -y ppa:git-core/ppa
-sudo add-apt-repository -y universe
-sudo apt-get upgrade -y
-sudo apt-get install -y curl vim jq nmap virtualbox git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks \
-        ncdu csvkit make build-essential apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent \
-        software-properties-common python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service \
-        liblzma-dev golang-src lsb-release libffi-dev gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0
-sudo pip3 install --upgrade pipenv ansible openstacksdk
+  ### Software installation #############################################################################################
 
-# GitHub CLI
-REPO=githubcli
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://cli.github.com/packages stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  sudo add-apt-repository -y ppa:git-core/ppa
+  sudo add-apt-repository -y universe
+  sudo apt-get upgrade -y
+  sudo apt-get install -y curl vim jq nmap virtualbox git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks \
+          ncdu csvkit make build-essential apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent \
+          software-properties-common python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service \
+          liblzma-dev golang-src lsb-release libffi-dev gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0
+  sudo pip3 install --upgrade pipenv ansible openstacksdk
 
-# Azure CLI
-REPO=azure
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # GitHub CLI
+  REPO=githubcli
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] https://cli.github.com/packages stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Google Chrome
-REPO=google-chrome
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Azure CLI
+  REPO=azure
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Google Packages
-REPO=google-cloud-packages
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-echo "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a "/etc/apt/sources.list.d/${REPO}.list"
+  # Google Chrome
+  REPO=google-chrome
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Helm
-REPO=helm
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Google Packages
+  REPO=google-cloud-packages
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  echo "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a "/etc/apt/sources.list.d/${REPO}.list"
 
-# MongoDB
-REPO=mongodb
-KEY=$(build_key_name ${REPO})
-curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Helm
+  REPO=helm
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Hashicorp
-REPO=hashicorp
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # MongoDB
+  REPO=mongodb
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Docker
-REPO=docker
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Hashicorp
+  REPO=hashicorp
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Postgres
-REPO=postgres
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Docker
+  REPO=docker
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# PgAdmin
-REPO=pgadmin
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Postgres
+  REPO=postgres
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Spotify
-REPO=spotify
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # PgAdmin
+  REPO=pgadmin
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Yarn
-REPO=yarn
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [signed-by=${KEY}] https://dl.yarnpkg.com/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Spotify
+  REPO=spotify
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# Lens
-REPO=lens
-KEY=$(build_key_name ${REPO})
-curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-echo "deb [arch=amd64 signed-by=${KEY}] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
+  # Yarn
+  REPO=yarn
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [signed-by=${KEY}] https://dl.yarnpkg.com/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-# NodeJS
-curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
+  # Lens
+  REPO=lens
+  KEY=$(build_key_name ${REPO})
+  curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
 
-sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools \
-        docker-compose terraform azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh \
-        google-chrome-stable yarn gh lens
-sudo npm install -g ncc
-sudo npm update -g
+  # NodeJS
+  curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
 
-# VSCode
-wget -qO vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
-sudo apt-get install -y ./vscode.deb
-rm vscode.deb*
+  sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools \
+          docker-compose terraform azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh \
+          google-chrome-stable yarn gh lens aztfexport aztfy
+  sudo npm install -g ncc
+  sudo npm update -g
 
-# Powershell
-wget -q "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
-sudo apt-get install -y ./packages-microsoft-prod.deb
-rm packages-microsoft-prod.deb*
+  # VSCode
+  wget -qO vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+  sudo apt-get install -y ./vscode.deb
+  rm vscode.deb*
 
-# Pyenv
-"${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
+  # Powershell
+  wget -q "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
+  sudo apt-get install -y ./packages-microsoft-prod.deb
+  rm packages-microsoft-prod.deb*
 
-# Kind
-wget -qO kind "https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-linux-amd64"
-chmod +x kind
-sudo mv -v kind /usr/local/bin/kind
+  # Pyenv
+  "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
-# AWS CLI
-wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
-unzip -q awscli-exe-linux-x86_64.zip
-sudo aws/install --update
-rm -rf aws*
+  # Kind
+  wget -qO kind "https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-linux-amd64"
+  chmod +x kind
+  sudo mv -v kind /usr/local/bin/kind
 
-# ZeroTier
-curl -fsSL https://install.zerotier.com | sudo bash || true
+  # AWS CLI
+  wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+  unzip -q awscli-exe-linux-x86_64.zip
+  sudo aws/install --update
+  rm -rf aws*
 
-sudo apt-get clean
+  # ZeroTier
+  curl -fsSL https://install.zerotier.com | sudo bash || true
+
+  sudo apt-get clean
+
+fi
 
 # System configuration ################################################################################################
 
@@ -146,3 +150,57 @@ git config --global core.editor "vim"
 git config --global push.autoSetupRemote true
 gh config set git_protocol ssh -h github.com
 
+grep -qxF "source \${HOME}/.bashrc_custom" "${HOME}/.bashrc" || echo "source \${HOME}/.bashrc_custom" >> "${HOME}/.bashrc"
+
+cat << 'EOF' > "${HOME}/.bashrc_custom"
+# Local user binary folder
+export PATH="$HOME/.local/bin:$PATH"
+
+# Pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+# Activate pipfile venv
+[[ -f ./Pipfile ]] && pipenv shell
+
+# Github
+export GH_TOKEN=$(cat "${HOME}/.github_token" 2> /dev/null)
+
+# Kubeconfig
+export KUBECONFIG=$HOME/.kube/config
+source <(kubectl completion bash)
+
+# Vault
+export VAULT_ADDR=https://vault.nodis.com.br
+
+# Scripts
+export PATH="$HOME/Projetos/ptonini/scripts:$PATH"
+
+# Terraform
+export TF_VAR_kubeconfig=$KUBECONFIG
+export TF_VAR_github_token=$GH_TOKEN
+export TF_VAR_vault_addr=$VAULT_ADDR
+
+alias tf_fmt='terraform fmt -recursive'
+alias tf_get='terraform get'
+alias tf_out='terraform output'
+alias tf_unlock='terraform force-unlock -force'
+alias tf_apply='terraform apply plan'
+
+alias tf_refresh='git pull && tf_fmt && tf_get && terraform plan -parallelism=50 -out=plan'
+alias tf_plan='tf_refresh -refresh=false'
+alias tf_getup='tf_get -update'
+alias tf_kube='terraform output -raw kubeconfig > "${HOME}/.kube/config" && chmod 0600 "${HOME}/.kube/config"'
+alias tf_reset='rm -vrf .terraform && terraform init -backend-config=.encryption_key.gcs.tfbackend'
+
+# Golang
+export GOPATH="$HOME/.go"
+export PATH="$PATH:$GOPATH/bin"
+
+# Lua
+export PATH="$PATH:$HOME/.luarocks/bin"
+
+# Kind
+source <(kind completion bash)
+EOF

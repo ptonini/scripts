@@ -4,19 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Songmu/prompter"
-	"github.com/hashicorp/vault-client-go"
-	"github.com/hashicorp/vault-client-go/schema"
-	"github.com/manifoldco/promptui"
 	"log"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/Songmu/prompter"
+	"github.com/hashicorp/vault-client-go"
+	"github.com/hashicorp/vault-client-go/schema"
+	"github.com/manifoldco/promptui"
 )
 
 const (
 	maxConcurrentJobs = 100
-	githubPath        = `auth/github/login`
+	authPath          = `auth/github/login`
 )
 
 type Token struct {
@@ -62,12 +63,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	untypedAccessors := response.Data["keys"].([]interface{})
-	accessors := make([]string, len(untypedAccessors))
-	for i, v := range untypedAccessors {
-		accessors[i] = v.(string)
-	}
 
+	accessors := response.Data["keys"].([]interface{})
 	fmt.Printf("found %d tokens\n", len(accessors))
 
 	var wg sync.WaitGroup
@@ -79,8 +76,8 @@ func main() {
 		waitChan <- struct{}{}
 		go func(count int) {
 			fmt.Printf("\rread %d tokens", count)
-			token := getToken(ctx, client, accessors[count])
-			if token.Path == githubPath {
+			token := getToken(ctx, client, accessors[count].(string))
+			if token.Path == authPath {
 				matched = append(matched, token)
 			}
 			<-waitChan
