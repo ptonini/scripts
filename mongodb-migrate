@@ -9,9 +9,6 @@ DEST_PASSWORD=""
 
 CLUSTER_PAIRS=(
     "nodis-prod-azure-genera.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
-    "nodis-prod-azure-order.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
-    "nodis-prod-azure-skusel.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
-    "nodis-prod-azure-events.nbyri.mongodb.net,mdb0001.dev.nodis.com.br"
 )
 
 

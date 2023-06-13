@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+import base64
+import os
+
+
+def generate_encryption_key():
+    key = os.urandom(32)
+    encoded_key = base64.b64encode(key).decode("utf-8")
+    print(f"Base 64 encoded encryption key: {encoded_key}")
+
+
+if __name__ == "__main__":
+    generate_encryption_key()
