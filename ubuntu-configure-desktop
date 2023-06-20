@@ -4,14 +4,24 @@ set -e
 UBUNTU_RELEASE=jammy
 UBUNTU_VERSION=22.04
 NODEJS_VERSION=18
+MONGODB_VERSION=6.0
 K9_VERSION=0.27.4
 KIND_VERSION=0.18.0
-MONGODB_VERSION=6.0
 COMPASS_VERSION=1.37.0
 
 build_key_name () {
     echo "/usr/share/keyrings/${1}-archive-keyring.gpg"
 }
+
+add_source () {
+  local NAME="${1}"
+  local REPO="${2}"
+  local KEY_URL="${3}"
+  local KEY="/usr/share/keyrings/${NAME}-archive-keyring.gpg"
+  curl -fsSL "${KEY_URL}" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+  echo "deb [arch=amd64 signed-by=${KEY}] ${REPO}" | sudo tee "/etc/apt/sources.list.d/${NAME}.list"
+}
+
 
 if [[ ${1} != "skip_install"  ]]; then
 
@@ -20,110 +30,48 @@ if [[ ${1} != "skip_install"  ]]; then
   sudo add-apt-repository -y ppa:git-core/ppa
   sudo add-apt-repository -y universe
   sudo apt-get upgrade -y
-  sudo apt-get install -y curl vim jq nmap virtualbox git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks \
-          ncdu csvkit make build-essential cheese apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent \
+  sudo apt-get install -y curl vim jq nmap git remmina-* python3-pip calibre flameshot golang-go lua5.1 luarocks cheese ncdu \
+          csvkit make build-essential smartmontools apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent \
           software-properties-common python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service \
           liblzma-dev golang-src lsb-release libffi-dev gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0
   sudo pip3 install --upgrade pipenv ansible openstacksdk
 
-  # GitHub CLI
-  REPO=githubcli
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] https://cli.github.com/packages stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Azure CLI
-  REPO=azure
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Google Chrome
-  REPO=google-chrome
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Google Packages
-  REPO=google-cloud-packages
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [signed-by=${KEY}] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-  echo "deb [signed-by=${KEY}] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Helm
-  REPO=helm
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [signed-by=${KEY}] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # MongoDB
-  REPO=mongodb
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [signed-by=${KEY} arch=amd64,arm64] https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Hashicorp
-  REPO=hashicorp
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Docker
-  REPO=docker
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Postgres
-  REPO=postgres
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # PgAdmin
-  REPO=pgadmin
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [signed-by=${KEY}] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Spotify
-  REPO=spotify
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [signed-by=${KEY}] http://repository.spotify.com stable non-free" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Yarn
-  REPO=yarn
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [signed-by=${KEY}] https://dl.yarnpkg.com/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # Lens
-  REPO=lens
-  KEY=$(build_key_name ${REPO})
-  curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee "/etc/apt/sources.list.d/${REPO}.list"
-
-  # NodeJS
-  curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
+  # APT Repositories
+  add_source github-cli "https://cli.github.com/packages stable main" https://cli.github.com/packages/githubcli-archive-keyring.gpg
+  add_source azure "https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" https://packages.microsoft.com/keys/microsoft.asc
+  add_source google-chrome "https://dl.google.com/linux/chrome/deb/ stable main" https://dl.google.com/linux/linux_signing_key.pub
+  add_source google-cloud-packages "https://apt.kubernetes.io/ kubernetes-xenial main stable main" https://packages.cloud.google.com/apt/doc/apt-key.gpg
+  add_source google-cloud-k8s "https://packages.cloud.google.com/apt cloud-sdk main" https://packages.cloud.google.com/apt/doc/apt-key.gpg
+  add_source helm "https://baltocdn.com/helm/stable/debian/ all main" https://baltocdn.com/helm/signing.asc
+  add_source mongodb "https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
+  add_source hashicorp "https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" https://apt.releases.hashicorp.com/gpg
+  add_source docker "https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" https://download.docker.com/linux/ubuntu/gpg
+  add_source postgres "https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" https://www.postgresql.org/media/keys/ACCC4CF8.asc
+  add_source pgadmin "https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" https://www.pgadmin.org/static/packages_pgadmin_org.pub
+  add_source spotify "http://repository.spotify.com stable non-free" https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg
+  add_source virtualbox "https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib" https://www.virtualbox.org/download/oracle_vbox_2016.asc
+  add_source yarn "https://dl.yarnpkg.com/debian stable main" https://dl.yarnpkg.com/debian/pubkey.gpg
+  add_source lens "https://downloads.k8slens.dev/apt/debian stable main" https://downloads.k8slens.dev/keys/gpg
 
   # Microsoft apt repository
   wget -q "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
   sudo apt-get install -y ./packages-microsoft-prod.deb
   rm packages-microsoft-prod.deb*
 
+  # NodeJS
+  curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
+
+  sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools \
+          docker-compose terraform azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh \
+          google-chrome-stable yarn gh lens aztfexport aztfy virtualbox-7.0
+
+  sudo npm install -g ncc typescript
+  sudo npm update -g
+
   # VSCode
   wget -qO vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
   sudo apt-get install -y ./vscode.deb
   rm vscode.deb*
-
-  sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools \
-          docker-compose terraform azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh \
-          google-chrome-stable yarn gh lens aztfexport aztfy
-
-  sudo npm install -g ncc typescript
-  sudo npm update -g
 
   # MongoDB Compass
   wget -qO compass.deb "https://downloads.mongodb.com/compass/mongodb-compass_${COMPASS_VERSION}_amd64.deb"
@@ -137,10 +85,7 @@ if [[ ${1} != "skip_install"  ]]; then
   "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
   # K9s
-  wget -q "https://github.com/derailed/k9s/releases/download/v${K9_VERSION}/k9s_Linux_amd64.tar.gz"
-  tar -xzvf k9s_Linux_amd64.tar.gz k9s
-  rm k9s_Linux_amd64.tar.gz
-  sudo mv k9s /usr/local/bin/
+  wget -q "https://github.com/derailed/k9s/releases/download/v${K9_VERSION}/k9s_Linux_amd64.tar.gz" -O - | sudo tar -C /usr/local/bin/ --overwrite -xzvf - k9s
 
   # Kind
   sudo wget -qO /usr/local/bin/kind "https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-linux-amd64"
@@ -171,7 +116,12 @@ git config --global push.autoSetupRemote true
 # GitHub
 gh config set git_protocol ssh -h github.com
 
-grep -qxF "source \${HOME}/.bashrc_custom" "${HOME}/.bashrc" || printf "\nsource \${HOME}/.bashrc_custom" >> "${HOME}/.bashrc"
+#touch "${HOME}/.inputrc"
+#grep -qxF "set enable-bracketed-paste Off" "${HOME}/.inputrc" || printf "set enable-bracketed-paste Off\n" >> "${HOME}/.inputrc"
+
+BASHRC_STRING="source \${HOME}/.bashrc_custom"
+grep -qxF "${BASHRC_STRING}" "${HOME}/.bashrc" || printf "\n%s\n" "${BASHRC_STRING}" >> "${HOME}/.bashrc"
+
 cat << 'EOF' > "${HOME}/.bashrc_custom"
 # Pyenv
 export PYENV_ROOT="$HOME/.pyenv"
@@ -217,3 +167,4 @@ export PATH="$HOME/.luarocks/bin:$PATH"
 # Kind
 source <(kind completion bash)
 EOF
+source "${HOME}/.bashrc_custom"
