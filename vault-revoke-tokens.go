@@ -92,14 +92,10 @@ func main() {
 	}
 
 	var menuItems []string
-	for k, _ := range userTokens {
+	for k := range userTokens {
 		menuItems = append(menuItems, k)
 	}
-	prompt := promptui.Select{
-		Label: "Select user",
-		Items: menuItems,
-		Size:  20,
-	}
+	prompt := promptui.Select{Label: "Select user", Items: menuItems, Size: 20}
 	_, username, _ := prompt.Run()
 
 	if prompter.YesNo(fmt.Sprintf("User %s has %d active tokens. Delete?\n", username, len(userTokens[username])), false) {

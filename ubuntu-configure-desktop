@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xe
+set -e
 
 UBUNTU_RELEASE=jammy
 UBUNTU_VERSION=22.04
@@ -12,7 +12,7 @@ add_apt_source () {
   echo "deb [arch=amd64 signed-by=${KEY}] ${2}" | sudo tee "/etc/apt/sources.list.d/${1}.list"
 }
 
-if [[ ${1} != "skip_install"  ]]; then
+if true; then
 
 ### Installation #############################################################################################
 
@@ -55,12 +55,12 @@ if [[ ${1} != "skip_install"  ]]; then
   add_apt_source lens "https://downloads.k8slens.dev/apt/debian stable main" https://downloads.k8slens.dev/keys/gpg
 
   # Microsoft apt repository
-  wget -q "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
-  sudo apt-get install -y ./packages-microsoft-prod.deb
-  rm packages-microsoft-prod.deb*
+  wget -qO /tmp/packages-microsoft-prod.deb "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
+  sudo apt-get install -y /tmp/packages-microsoft-prod.deb
+  rm /tmp/packages-microsoft-prod.deb
 
   # NodeJS apt repository
-  # curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
+  curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
 
   sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools docker-compose terraform azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh google-chrome-stable yarn gh lens aztfexport aztfy virtualbox-7.0
 
@@ -71,9 +71,9 @@ if [[ ${1} != "skip_install"  ]]; then
   curl -fsSL https://install.zerotier.com | sudo bash || true
 
   # VSCode
-  wget -qO vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
-  sudo apt-get install -y ./vscode.deb
-  rm vscode.deb*
+  wget -qO /tmp/vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+  sudo apt-get install -y /tmp/vscode.deb
+  rm /tmp/vscode.deb
 
   # Rust
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh /dev/stdin -y
@@ -82,29 +82,28 @@ if [[ ${1} != "skip_install"  ]]; then
   "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
   # Terracognita
-  wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz  -O - | tar --overwrite -xzvf - terracognita-linux-amd64
-  sudo mv -v terracognita-linux-amd64 /usr/local/bin/terracognita
+  wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz  -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
 
   # K9s
-  wget -q "https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz" -O - | sudo tar -C /usr/local/bin/ --overwrite -xzvf - k9s
+  wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - k9s
 
   # Eksctl
-  wget -q "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz" -O - | sudo tar -C /usr/local/bin/ --overwrite -xzvf - eksctl
+  wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
 
   # Kubelogin
-  wget -q "https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip" -O kubelogin-linux-amd64.zip
-  sudo unzip -jo kubelogin-linux-amd64.zip bin/linux_amd64/kubelogin -d /usr/local/bin
-  rm -rf kubelogin-linux-amd64.zip
+  wget -qO /tmp/kubelogin-linux-amd64.zip "https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip"
+  sudo unzip -jo /tmp/kubelogin-linux-amd64.zip bin/linux_amd64/kubelogin -d /usr/local/bin
+  rm -rf /tmp/kubelogin-linux-amd64.zip
 
   # Kind
   sudo wget -qO /usr/local/bin/kind "https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64"
   sudo chmod +x /usr/local/bin/kind
 
   # AWS CLI
-  wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
-  unzip -q awscli-exe-linux-x86_64.zip
-  sudo aws/install --update
-  rm -rf awscli-exe-linux-x86_64.zip aws/
+  wget -qO /tmp/awscli-exe-linux-x86_64.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+  unzip -q /tmp/awscli-exe-linux-x86_64.zip -d /tmp
+  sudo /tmp/aws/install --update
+  rm -rf /tmp/aws*
 
   sudo apt-get clean
 
@@ -118,7 +117,6 @@ sudo update-alternatives --set editor /usr/bin/vim.basic
 # Docker
 sudo groupadd -f docker
 sudo usermod -aG docker "$USER"
-
 
 # GIT
 git config --global core.editor vim
@@ -142,9 +140,10 @@ eval "$(pyenv init -)"
 
 # Github
 export GH_TOKEN=$(cat "${HOME}/.github_token" 2> /dev/null)
+alias gh_tf_create='gh repo create ptonini/terraform-$(pwd | xargs basename) --public --source . --push'
 
 # Kubeconfig
-export KUBECONFIG=$HOME/.kube/config:$HOME/.kube/config_vault
+export KUBECONFIG=$HOME/.kube/config
 source <(kubectl completion bash)
 
 # Eksctl
@@ -180,4 +179,3 @@ export PATH="$HOME/.luarocks/bin:$PATH"
 # Kind
 source <(kind completion bash)
 EOF
-source "${HOME}/.bashrc_custom"
