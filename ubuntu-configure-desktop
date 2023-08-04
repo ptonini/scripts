@@ -122,6 +122,7 @@ sudo usermod -aG docker "$USER"
 git config --global core.editor vim
 git config --global push.autoSetupRemote true
 git config --global init.defaultBranch main
+git config --global core.autocrlf input
 
 # GitHub
 gh config set git_protocol ssh -h github.com
@@ -162,7 +163,7 @@ alias tf_fmt='terraform fmt -recursive'
 alias tf_get='terraform get'
 alias tf_out='terraform output'
 alias tf_unlock='terraform force-unlock -force'
-alias tf_apply='terraform apply plan'
+alias tf_apply='terraform apply plan && rm -f plan'
 alias tf_refresh='tf_fmt && tf_get && terraform plan -parallelism=50 -out=plan'
 alias tf_plan='tf_refresh -refresh=false'
 alias tf_getup='tf_get -update'
@@ -178,4 +179,7 @@ export PATH="$HOME/.luarocks/bin:$PATH"
 
 # Kind
 source <(kind completion bash)
+
+# Rust
+source "$HOME/.cargo/env"
 EOF
