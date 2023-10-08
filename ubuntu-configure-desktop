@@ -3,7 +3,7 @@ set -e
 
 UBUNTU_RELEASE=jammy
 UBUNTU_VERSION=22.04
-NODEJS_VERSION=18
+NODEJS_VERSION=20
 MONGODB_VERSION=6.0
 
 add_apt_source () {
@@ -12,102 +12,118 @@ add_apt_source () {
   echo "deb [arch=amd64 signed-by=${KEY}] ${2}" | sudo tee "/etc/apt/sources.list.d/${1}.list"
 }
 
-if true; then
+FLATPAKS=(
+  com.github.IsmaelMartinez.teams_for_linux
+  io.github.mimbrero.WhatsAppDesktop
+  com.bitwarden.desktop
+  com.mongodb.Compass
+  com.github.micahflee.torbrowser-launcher
+  com.slack.Slack
+)
+
+ANSIBLE_COLLECTIONS=(
+  amazon.aws
+  openstack.cloud
+  community.docker
+  community.general
+  ansible.posix
+  azure.azcollection
+)
 
 ### Installation #############################################################################################
 
-  sudo add-apt-repository -y ppa:git-core/ppa
-  sudo add-apt-repository -y universe
-  sudo apt-get upgrade -y
-  sudo apt-get install -y curl vim jq nmap calibre flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks csvkit make build-essential smartmontools apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent software-properties-common python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service chntpw liblzma-dev golang-src lsb-release libffi-dev gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0
-  sudo pip3 install --upgrade pipenv ansible openstacksdk
+sudo add-apt-repository -y ppa:git-core/ppa
+sudo add-apt-repository -y universe
+sudo apt-get upgrade -y
+sudo apt-get install -y curl vim jq nmap calibre flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks csvkit make \
+                        build-essential smartmontools apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent software-properties-common \
+                        python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service chntpw liblzma-dev golang-src lsb-release libffi-dev \
+                        gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0 dconf-editor
+sudo pip3 install --upgrade pipenv ansible openstacksdk azure-cli
 
-  # Ansible Galaxy
-  ansible-galaxy collection install --upgrade amazon.aws
-  ansible-galaxy collection install --upgrade openstack.cloud
-  ansible-galaxy collection install --upgrade community.docker
-  ansible-galaxy collection install --upgrade community.general
-  ansible-galaxy collection install --upgrade ansible.posix
+# Ansible Galaxy
+for U in "${ANSIBLE_COLLECTIONS[@]}"; do
+  ansible-galaxy collection install --upgrade "${U}"
+done
 
-  # Flatpaks
-  sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  flatpak install --or-update -y com.github.IsmaelMartinez.teams_for_linux
-  flatpak install --or-update -y io.github.mimbrero.WhatsAppDesktop
-  flatpak install --or-update -y com.bitwarden.desktop
-  flatpak install --or-update -y com.mongodb.Compass
-  flatpak install --or-update -y com.github.micahflee.torbrowser-launcher
+# Flatpaks
+sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+for F in "${FLATPAKS[@]}"; do
+  flatpak install --or-update -y "${F}"
+done
 
-  # APT Repositories
-  add_apt_source github-cli "https://cli.github.com/packages stable main" https://cli.github.com/packages/githubcli-archive-keyring.gpg
-  add_apt_source azure "https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" https://packages.microsoft.com/keys/microsoft.asc
-  add_apt_source google-chrome "https://dl.google.com/linux/chrome/deb/ stable main" https://dl.google.com/linux/linux_signing_key.pub
-  add_apt_source google-cloud-packages "https://apt.kubernetes.io/ kubernetes-xenial main" https://packages.cloud.google.com/apt/doc/apt-key.gpg
-  add_apt_source google-cloud-k8s "https://packages.cloud.google.com/apt cloud-sdk main"  https://packages.cloud.google.com/apt/doc/apt-key.gpg
-  add_apt_source helm "https://baltocdn.com/helm/stable/debian/ all main" https://baltocdn.com/helm/signing.asc
-  add_apt_source mongodb "https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
-  add_apt_source hashicorp "https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" https://apt.releases.hashicorp.com/gpg
-  add_apt_source docker "https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" https://download.docker.com/linux/ubuntu/gpg
-  add_apt_source postgres "https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" https://www.postgresql.org/media/keys/ACCC4CF8.asc
-  add_apt_source pgadmin "https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" https://www.pgadmin.org/static/packages_pgadmin_org.pub
-  add_apt_source spotify "http://repository.spotify.com stable non-free" https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg
-  add_apt_source virtualbox "https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib" https://www.virtualbox.org/download/oracle_vbox_2016.asc
-  add_apt_source yarn "https://dl.yarnpkg.com/debian stable main" https://dl.yarnpkg.com/debian/pubkey.gpg
-  add_apt_source lens "https://downloads.k8slens.dev/apt/debian stable main" https://downloads.k8slens.dev/keys/gpg
+# APT Repositories
+add_apt_source github-cli "https://cli.github.com/packages stable main" https://cli.github.com/packages/githubcli-archive-keyring.gpg
+add_apt_source azure "https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" https://packages.microsoft.com/keys/microsoft.asc
+add_apt_source google-chrome "https://dl.google.com/linux/chrome/deb/ stable main" https://dl.google.com/linux/linux_signing_key.pub
+add_apt_source google-cloud-packages "https://apt.kubernetes.io/ kubernetes-xenial main" https://packages.cloud.google.com/apt/doc/apt-key.gpg
+add_apt_source google-cloud-k8s "https://packages.cloud.google.com/apt cloud-sdk main"  https://packages.cloud.google.com/apt/doc/apt-key.gpg
+add_apt_source helm "https://baltocdn.com/helm/stable/debian/ all main" https://baltocdn.com/helm/signing.asc
+add_apt_source mongodb "https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
+add_apt_source hashicorp "https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" https://apt.releases.hashicorp.com/gpg
+add_apt_source docker "https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" https://download.docker.com/linux/ubuntu/gpg
+add_apt_source postgres "https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" https://www.postgresql.org/media/keys/ACCC4CF8.asc
+add_apt_source pgadmin "https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" https://www.pgadmin.org/static/packages_pgadmin_org.pub
+add_apt_source spotify "http://repository.spotify.com stable non-free" https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg
+add_apt_source virtualbox "https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib" https://www.virtualbox.org/download/oracle_vbox_2016.asc
+add_apt_source yarn "https://dl.yarnpkg.com/debian stable main" https://dl.yarnpkg.com/debian/pubkey.gpg
+add_apt_source node "https://deb.nodesource.com/node_${NODEJS_VERSION}.x nodistro main" https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+add_apt_source lens "https://downloads.k8slens.dev/apt/debian stable main" https://downloads.k8slens.dev/keys/gpg
 
-  # Microsoft apt repository
-  wget -qO /tmp/packages-microsoft-prod.deb "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
-  sudo apt-get install -y /tmp/packages-microsoft-prod.deb
-  rm /tmp/packages-microsoft-prod.deb
+# Microsoft apt repository
+wget -qO /tmp/packages-microsoft-prod.deb "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
+sudo apt-get install -y /tmp/packages-microsoft-prod.deb
+rm /tmp/packages-microsoft-prod.deb
 
-  # NodeJS apt repository
-  curl -fsSL "https://deb.nodesource.com/setup_${NODEJS_VERSION}.x" | sudo bash -
+sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools docker-compose terraform \
+                        azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh google-chrome-stable yarn gh lens \
+                        aztfexport aztfy virtualbox-7.0
+sudo apt-get upgrade -y
 
-  sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools docker-compose terraform azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh google-chrome-stable yarn gh lens aztfexport aztfy virtualbox-7.0
+sudo npm install -g ncc typescript
+sudo npm update -g
 
-  sudo npm install -g ncc typescript
-  sudo npm update -g
+# ZeroTier
+curl -fsSL https://install.zerotier.com | sudo bash || true
 
-  # ZeroTier
-  curl -fsSL https://install.zerotier.com | sudo bash || true
+# VSCode
+wget -qO /tmp/vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+sudo apt-get install -y /tmp/vscode.deb
+rm /tmp/vscode.deb
 
-  # VSCode
-  wget -qO /tmp/vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
-  sudo apt-get install -y /tmp/vscode.deb
-  rm /tmp/vscode.deb
+# Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh /dev/stdin -y
 
-  # Rust
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh /dev/stdin -y
+# Pyenv
+"${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
-  # Pyenv
-  "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
+# Terracognita
+wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz  -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
 
-  # Terracognita
-  wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz  -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
+# K9s
+wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - k9s
 
-  # K9s
-  wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - k9s
+# Eksctl
+wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
 
-  # Eksctl
-  wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
+# Kubelogin
+wget -qO /tmp/kubelogin-linux-amd64.zip "https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip"
+sudo unzip -jo /tmp/kubelogin-linux-amd64.zip bin/linux_amd64/kubelogin -d /usr/local/bin
+rm -rf /tmp/kubelogin-linux-amd64.zip
 
-  # Kubelogin
-  wget -qO /tmp/kubelogin-linux-amd64.zip "https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip"
-  sudo unzip -jo /tmp/kubelogin-linux-amd64.zip bin/linux_amd64/kubelogin -d /usr/local/bin
-  rm -rf /tmp/kubelogin-linux-amd64.zip
+# Kind
+sudo wget -qO /usr/local/bin/kind "https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64"
+sudo chmod +x /usr/local/bin/kind
 
-  # Kind
-  sudo wget -qO /usr/local/bin/kind "https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64"
-  sudo chmod +x /usr/local/bin/kind
+# AWS CLI
+wget -qO /tmp/awscli-exe-linux-x86_64.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+unzip -q /tmp/awscli-exe-linux-x86_64.zip -d /tmp
+sudo /tmp/aws/install --update
+rm -rf /tmp/aws*
 
-  # AWS CLI
-  wget -qO /tmp/awscli-exe-linux-x86_64.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
-  unzip -q /tmp/awscli-exe-linux-x86_64.zip -d /tmp
-  sudo /tmp/aws/install --update
-  rm -rf /tmp/aws*
+sudo apt-get clean
+sudo apt-get -y autoremove
 
-  sudo apt-get clean
-
-fi
 
 ### Configuration ################################################################################################
 
@@ -167,7 +183,7 @@ alias tf_apply='terraform apply plan && rm -f plan'
 alias tf_refresh='tf_fmt && tf_get && terraform plan -parallelism=50 -out=plan'
 alias tf_plan='tf_refresh -refresh=false'
 alias tf_getup='tf_get -update'
-alias tf_kube='tf_out -raw kubeconfig > "${HOME}/.kube/config" && chmod 0600 "${HOME}/.kube/config"'
+alias tf_kube='tf_out -raw kubeconfig > "${HOME}/.kube/terraform" && chmod 0600 "${HOME}/.kube/terraform"'
 alias tf_reset='rm -vrf .terraform && terraform init -backend-config=.encryption_key.gcs.tfbackend'
 
 # Golang

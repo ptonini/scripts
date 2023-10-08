@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 
-#PROFILES=$(aws configure list-profiles)
-PROFILES=(flow2go)
+PROFILES=$(aws configure list-profiles)
+#PROFILES=(flow2go)
 
 for PROFILE in ${PROFILES}; do
 
