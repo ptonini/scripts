@@ -6,11 +6,41 @@ UBUNTU_VERSION=22.04
 NODEJS_VERSION=20
 MONGODB_VERSION=6.0
 
-add_apt_source () {
-  local KEY="/usr/share/keyrings/${1}-archive-keyring.gpg"
-  curl -fsSL "${3}" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
-  echo "deb [arch=amd64 signed-by=${KEY}] ${2}" | sudo tee "/etc/apt/sources.list.d/${1}.list"
-}
+
+DEFAULT_APT_PACKAGES="curl vim jq nmap calibre flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks csvkit make
+                      build-essential smartmontools apt-transport-https openssh-server bash-completion python3-gi libsqlite3-dev software-properties-common
+                      python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service chntpw gnupg-agent liblzma-dev golang-src lsb-release libffi-dev
+                      gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0 dconf-editor"
+
+SYSTEM_PYTHON_PACKAGES="pipenv ansible openstacksdk azure-cli"
+
+DEB_PACKAGES=(
+  "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
+  "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+)
+
+APT_REPOSITORIES=(
+  "github-cli,https://cli.github.com/packages stable main,https://cli.github.com/packages/githubcli-archive-keyring.gpg"
+  "azure,https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main,https://packages.microsoft.com/keys/microsoft.asc"
+  "google-chrome,https://dl.google.com/linux/chrome/deb/ stable main,https://dl.google.com/linux/linux_signing_key.pub"
+  "google-cloud-packages,https://apt.kubernetes.io/ kubernetes-xenial main,https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+  "google-cloud-k8s,https://packages.cloud.google.com/apt cloud-sdk main,https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+  "helm,https://baltocdn.com/helm/stable/debian/ all main,https://baltocdn.com/helm/signing.asc"
+  "mongodb,https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse,https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
+  "hashicorp,https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main,https://apt.releases.hashicorp.com/gpg"
+  "docker,https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable,https://download.docker.com/linux/ubuntu/gpg"
+  "postgres,https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main,https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+  "pgadmin,https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main,https://www.pgadmin.org/static/packages_pgadmin_org.pub"
+  "spotify,http://repository.spotify.com stable non-free,https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg"
+  "virtualbox,https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib,https://www.virtualbox.org/download/oracle_vbox_2016.asc"
+  "yarn,https://dl.yarnpkg.com/debian stable main,https://dl.yarnpkg.com/debian/pubkey.gpg"
+  "node,https://deb.nodesource.com/node_${NODEJS_VERSION}.x nodistro main,https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key"
+  "lens,https://downloads.k8slens.dev/apt/debian stable main,https://downloads.k8slens.dev/keys/gpg"
+)
+
+CUSTOM_APT_PACKAGES="spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools docker-compose terraform
+                     azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh google-chrome-stable yarn gh lens
+                     aztfexport aztfy virtualbox-7.0"
 
 FLATPAKS=(
   com.github.IsmaelMartinez.teams_for_linux
@@ -19,6 +49,7 @@ FLATPAKS=(
   com.mongodb.Compass
   com.github.micahflee.torbrowser-launcher
   com.slack.Slack
+  com.getpostman.Postman
 )
 
 ANSIBLE_COLLECTIONS=(
@@ -30,172 +61,194 @@ ANSIBLE_COLLECTIONS=(
   azure.azcollection
 )
 
+HELM_REPOSITORIES=(
+  "ptonini,https://ptonini.github.io/helm-charts"
+  "prometheus,https://prometheus-community.github.io/helm-charts"
+  "elastic,https://helm.elastic.co"
+  "eks,https://aws.github.io/eks-charts"
+  "kong,https://charts.konghq.com"
+  "external-dns,https://kubernetes-sigs.github.io/external-dns/"
+  "stakater,https://stakater.github.io/stakater-charts"
+  "jetstack,https://charts.jetstack.io"
+  "secrets-store-csi-driver,https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts"
+  "aws-secrets-manager,https://aws.github.io/secrets-store-csi-driver-provider-aws"
+)
+
+
 ### Installation #############################################################################################
+if true; then
 
-sudo add-apt-repository -y ppa:git-core/ppa
-sudo add-apt-repository -y universe
-sudo apt-get upgrade -y
-sudo apt-get install -y curl vim jq nmap calibre flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks csvkit make \
-                        build-essential smartmontools apt-transport-https openssh-server bash-completion libsqlite3-dev gnupg-agent software-properties-common \
-                        python3-gi python3-gi-cairo gir1.2-gtk-3.0 libbz2-dev libreadline-dev gconf-service chntpw liblzma-dev golang-src lsb-release libffi-dev \
-                        gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev libgdk-pixbuf2.0-0 dconf-editor
-sudo pip3 install --upgrade pipenv ansible openstacksdk azure-cli
+  sudo add-apt-repository -y ppa:git-core/ppa
+  sudo add-apt-repository -y universe
+  sudo apt-get upgrade -y
+  sudo apt-get install -y ${DEFAULT_APT_PACKAGES}
 
-# Ansible Galaxy
-for U in "${ANSIBLE_COLLECTIONS[@]}"; do
-  ansible-galaxy collection install --upgrade "${U}"
-done
+  # System python packages
+  sudo pip3 install --disable-pip-version-check --no-warn-conflicts --upgrade pipenv ${SYSTEM_PYTHON_PACKAGES}
 
-# Flatpaks
-sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-for F in "${FLATPAKS[@]}"; do
-  flatpak install --or-update -y "${F}"
-done
+  # DEB packages
+  for P in "${DEB_PACKAGES[@]}"; do
+    ansible -i <(echo "{}") -b -o -m apt -a "deb=${P}" localhost
+  done
 
-# APT Repositories
-add_apt_source github-cli "https://cli.github.com/packages stable main" https://cli.github.com/packages/githubcli-archive-keyring.gpg
-add_apt_source azure "https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main" https://packages.microsoft.com/keys/microsoft.asc
-add_apt_source google-chrome "https://dl.google.com/linux/chrome/deb/ stable main" https://dl.google.com/linux/linux_signing_key.pub
-add_apt_source google-cloud-packages "https://apt.kubernetes.io/ kubernetes-xenial main" https://packages.cloud.google.com/apt/doc/apt-key.gpg
-add_apt_source google-cloud-k8s "https://packages.cloud.google.com/apt cloud-sdk main"  https://packages.cloud.google.com/apt/doc/apt-key.gpg
-add_apt_source helm "https://baltocdn.com/helm/stable/debian/ all main" https://baltocdn.com/helm/signing.asc
-add_apt_source mongodb "https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse" "https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
-add_apt_source hashicorp "https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main" https://apt.releases.hashicorp.com/gpg
-add_apt_source docker "https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable" https://download.docker.com/linux/ubuntu/gpg
-add_apt_source postgres "https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main" https://www.postgresql.org/media/keys/ACCC4CF8.asc
-add_apt_source pgadmin "https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main" https://www.pgadmin.org/static/packages_pgadmin_org.pub
-add_apt_source spotify "http://repository.spotify.com stable non-free" https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg
-add_apt_source virtualbox "https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib" https://www.virtualbox.org/download/oracle_vbox_2016.asc
-add_apt_source yarn "https://dl.yarnpkg.com/debian stable main" https://dl.yarnpkg.com/debian/pubkey.gpg
-add_apt_source node "https://deb.nodesource.com/node_${NODEJS_VERSION}.x nodistro main" https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
-add_apt_source lens "https://downloads.k8slens.dev/apt/debian stable main" https://downloads.k8slens.dev/keys/gpg
+  # APT Repositories
+  for R in "${APT_REPOSITORIES[@]}"; do
+    KEY="/usr/share/keyrings/$(echo "${R}"| cut -d, -f1)-archive-keyring.gpg"
+    curl -fsSL "$(echo "${R}"| cut -d, -f3)" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
+    echo "deb [arch=amd64 signed-by=${KEY}] $(echo "${R}"| cut -d, -f2)" | sudo tee "/etc/apt/sources.list.d/$(echo "${R}"| cut -d, -f1).list"
+  done
+  sudo apt-get install -y ${CUSTOM_APT_PACKAGES}
+  sudo apt-get upgrade -y
 
-# Microsoft apt repository
-wget -qO /tmp/packages-microsoft-prod.deb "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
-sudo apt-get install -y /tmp/packages-microsoft-prod.deb
-rm /tmp/packages-microsoft-prod.deb
+  # NodeJS Packages
+  sudo npm install -g ncc typescript
+  sudo npm update -g
 
-sudo apt-get install -y spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools docker-compose terraform \
-                        azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh google-chrome-stable yarn gh lens \
-                        aztfexport aztfy virtualbox-7.0
-sudo apt-get upgrade -y
+  # Ansible Galaxy
+  for U in "${ANSIBLE_COLLECTIONS[@]}"; do
+    ansible-galaxy collection install --upgrade "${U}"
+  done
 
-sudo npm install -g ncc typescript
-sudo npm update -g
+  # Flatpaks
+  sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  for F in "${FLATPAKS[@]}"; do
+    flatpak install --or-update -y "${F}"
+  done
 
-# ZeroTier
-curl -fsSL https://install.zerotier.com | sudo bash || true
+  # Helm repositories
+  for R in "${HELM_REPOSITORIES[@]}"; do
+    helm repo add "$(echo "${R}"| cut -d, -f1)" "$(echo "${R}"| cut -d, -f2)"
+  done
+  helm repo update
 
-# VSCode
-wget -qO /tmp/vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
-sudo apt-get install -y /tmp/vscode.deb
-rm /tmp/vscode.deb
+  # ZeroTier
+  curl -fsSL https://install.zerotier.com | sudo bash || true
 
-# Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh /dev/stdin -y
+  # Rust
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh /dev/stdin -y
 
-# Pyenv
-"${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
+  # Pyenv
+  "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
-# Terracognita
-wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz  -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
+  # Terracognita
+  wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz  -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
 
-# K9s
-wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - k9s
+  # K9s
+  wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - k9s
 
-# Eksctl
-wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
+  # Eksctl
+  wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
 
-# Kubelogin
-wget -qO /tmp/kubelogin-linux-amd64.zip "https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip"
-sudo unzip -jo /tmp/kubelogin-linux-amd64.zip bin/linux_amd64/kubelogin -d /usr/local/bin
-rm -rf /tmp/kubelogin-linux-amd64.zip
+  # Kubelogin
+  wget -qO /tmp/kubelogin-linux-amd64.zip "https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip"
+  sudo unzip -jo /tmp/kubelogin-linux-amd64.zip bin/linux_amd64/kubelogin -d /usr/local/bin
+  rm -rf /tmp/kubelogin-linux-amd64.zip
 
-# Kind
-sudo wget -qO /usr/local/bin/kind "https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64"
-sudo chmod +x /usr/local/bin/kind
+  # Kind
+  sudo wget -qO /usr/local/bin/kind "https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64"
+  sudo chmod +x /usr/local/bin/kind
 
-# AWS CLI
-wget -qO /tmp/awscli-exe-linux-x86_64.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
-unzip -q /tmp/awscli-exe-linux-x86_64.zip -d /tmp
-sudo /tmp/aws/install --update
-rm -rf /tmp/aws*
+  # AWS CLI
+  wget -qO /tmp/awscli-exe-linux-x86_64.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+  unzip -q /tmp/awscli-exe-linux-x86_64.zip -d /tmp
+  sudo /tmp/aws/install --update
+  rm -rf /tmp/aws*
 
-sudo apt-get clean
-sudo apt-get -y autoremove
+  sudo apt-get clean
+  sudo apt-get -y autoremove
 
+fi
 
 ### Configuration ################################################################################################
 
-# System
-sudo update-alternatives --set editor /usr/bin/vim.basic
+if true; then
 
-# Docker
-sudo groupadd -f docker
-sudo usermod -aG docker "$USER"
+  # System
+  sudo update-alternatives --set editor /usr/bin/vim.basic
 
-# GIT
-git config --global core.editor vim
-git config --global push.autoSetupRemote true
-git config --global init.defaultBranch main
-git config --global core.autocrlf input
+  # Docker
+  sudo groupadd -f docker
+  sudo usermod -aG docker "$USER"
 
-# GitHub
-gh config set git_protocol ssh -h github.com
+  # GIT
+  git config --global core.editor vim
+  git config --global push.autoSetupRemote true
+  git config --global init.defaultBranch main
+  git config --global core.autocrlf input
 
-BASHRC_STRING="source \${HOME}/.bashrc_custom"
-grep -qxF "${BASHRC_STRING}" "${HOME}/.bashrc" || printf "\n%s\n" "${BASHRC_STRING}" >> "${HOME}/.bashrc"
+  # GitHub
+  gh config set git_protocol ssh -h github.com
 
-cat << 'EOF' > "${HOME}/.bashrc_custom"
-# Pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
+  # Custom bashrc commands
+  CUSTOM_BLOCK_HEAD="######## BEGIN CUSTOM COMMANDS ########"
+  CUSTOM_BLOCK_TAIL="######### END CUSTOM COMMANDS #########"
 
-# Activate pipfile venv
-[[ -f ./Pipfile ]] && pipenv shell
+  grep -qxF "${CUSTOM_BLOCK_HEAD}" "${HOME}/.bashrc" || printf "\n\n%s" "${CUSTOM_BLOCK_HEAD}" >> "${HOME}/.bashrc"
+  grep -qxF "${CUSTOM_BLOCK_TAIL}" "${HOME}/.bashrc" || printf "\n%s" "${CUSTOM_BLOCK_TAIL}" >> "${HOME}/.bashrc"
 
-# Github
-export GH_TOKEN=$(cat "${HOME}/.github_token" 2> /dev/null)
-alias gh_tf_create='gh repo create ptonini/terraform-$(pwd | xargs basename) --public --source . --push'
+  CUSTOM_BLOCK_CONTENT=$(cat <<- 'EOF'
+		# Pyenv
+		export PYENV_ROOT="$HOME/.pyenv"
+		command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+		eval "$(pyenv init -)"
 
-# Kubeconfig
-export KUBECONFIG=$HOME/.kube/config
-source <(kubectl completion bash)
+		# Activate venv
+		[[ -f ./Pipfile ]] && pipenv shell
+		[[ -f ./venv/bin/activate ]] && source ./venv/bin/activate
 
-# Eksctl
-source <(eksctl completion bash)
+		# AWS
+		complete -C "$(which aws_completer)" aws
+		alias aws_login='aws sso login --sso-session'
 
-# Vault
-export VAULT_ADDR=https://vault.nodis.com.br
+		# Git
+		alias git_init='git init && git add . && git commit -m "chore: first commit"'
+		alias git_reset='rm -rf .git && git init'
 
-# Terraform
-export KUBE_CONFIG_PATH=$KUBECONFIG
-export TF_VAR_kubeconfig=$KUBECONFIG
-export TF_VAR_github_token=$GH_TOKEN
-export TF_VAR_vault_addr=$VAULT_ADDR
+		# Github
+		GH_TOKEN=$(cat "${HOME}/.github_token" 2> /dev/null)
+		export GH_TOKEN
+		alias gh_tf_create='gh repo create ptonini/terraform-$(pwd | xargs basename) --public --source . --push'
 
-alias tf_fmt='terraform fmt -recursive'
-alias tf_get='terraform get'
-alias tf_out='terraform output'
-alias tf_unlock='terraform force-unlock -force'
-alias tf_apply='terraform apply plan && rm -f plan'
-alias tf_refresh='tf_fmt && tf_get && terraform plan -parallelism=50 -out=plan'
-alias tf_plan='tf_refresh -refresh=false'
-alias tf_getup='tf_get -update'
-alias tf_kube='tf_out -raw kubeconfig > "${HOME}/.kube/terraform" && chmod 0600 "${HOME}/.kube/terraform"'
-alias tf_reset='rm -vrf .terraform && terraform init -backend-config=.encryption_key.gcs.tfbackend'
+		# Kubeconfig
+		export KUBECONFIG=$HOME/.kube/config
+		source <(kubectl completion bash)
 
-# Golang
-export GOPATH="$HOME/.go"
-export PATH="$GOPATH/bin:$PATH"
+		# Eksctl
+		source <(eksctl completion bash)
 
-# Lua
-export PATH="$HOME/.luarocks/bin:$PATH"
+		# Vault
+		export VAULT_ADDR=https://vault.nodis.com.br
 
-# Kind
-source <(kind completion bash)
+		# Terraform
+		export KUBE_CONFIG_PATH=$KUBECONFIG
+		export TF_VAR_kubeconfig=$KUBECONFIG
+		export TF_VAR_github_token=$GH_TOKEN
+		export TF_VAR_vault_addr=$VAULT_ADDR
+		alias tf_fmt='terraform fmt -recursive'
+		alias tf_get='terraform get'
+		alias tf_out='terraform output'
+		alias tf_unlock='terraform force-unlock -force'
+		alias tf_apply='terraform apply plan && rm -f plan'
+		alias tf_refresh='tf_fmt && tf_get && terraform plan -parallelism=50 -out=plan'
+		alias tf_plan='tf_refresh -refresh=false'
+		alias tf_getup='tf_get -update'
+		alias tf_kube='tf_out -raw kubeconfig > "${HOME}/.kube/terraform" && chmod 0600 "${HOME}/.kube/terraform"'
+		alias tf_reset='rm -vrf .terraform && terraform init -backend-config=.encryption_key.gcs.tfbackend'
 
-# Rust
-source "$HOME/.cargo/env"
-EOF
+		# Golang
+		export GOPATH="$HOME/.go"
+		export PATH="$GOPATH/bin:$PATH"
+
+		# Lua
+		export PATH="$HOME/.luarocks/bin:$PATH"
+
+		# Kind
+		source <(kind completion bash)
+
+		# Rust
+		source "$HOME/.cargo/env"
+	EOF
+	)
+
+  sed -i -ne "/${CUSTOM_BLOCK_HEAD}/ {p; r "<(echo "${CUSTOM_BLOCK_CONTENT}") -e ":a; n; /${CUSTOM_BLOCK_TAIL}/ {p; b}; ba}; p" "${HOME}/.bashrc"
+fi

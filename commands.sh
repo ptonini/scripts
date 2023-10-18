@@ -1,0 +1,2 @@
+helm install --namespace default toolbox ptonini/workload --set image=ghcr.io/ptonini/toolbox:latest --set-json service='{"enabled": false}'
+openssl req -subj '/C=US/CN=Postman Proxy' -new -newkey rsa:2048 -sha256 -days 365 -nodes -x509 -keyout postman-proxy-ca.key -out postman-proxy-ca.crt
