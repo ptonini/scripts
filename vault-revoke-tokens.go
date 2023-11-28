@@ -53,10 +53,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// authenticate with a root token (insecure)
-	if err = client.SetToken(os.Getenv("VAULT_TOKEN")); err != nil {
+	token, err := os.ReadFile(fmt.Sprintf("%s/.vault-token", os.Getenv("HOME")))
+	if err != nil {
 		log.Fatal(err)
 	}
+	_ = client.SetToken(string(token))
 
 	// get accessors
 	response, err := client.Auth.TokenListAccessors(ctx)
