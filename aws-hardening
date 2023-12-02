@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
 
-#PROFILES=$(aws configure list-profiles)
-PROFILES=(flow2go)
+PROFILES=(
+  AWS_DEV_BRIDGE_DATALAKE2.0
+  AWS_PRD_BRIDGE_DATALAKE2.0
+)
 
-for PROFILE in ${PROFILES}; do
+for PROFILE in "${PROFILES[@]}"; do
 
   export AWS_PROFILE=${PROFILE}
 
@@ -34,7 +36,7 @@ for PROFILE in ${PROFILES}; do
       aws ec2 delete-vpc --vpc-id "${VPC}"
     fi
 
-    if [[ $(aws ec2 get-ebs-encryption-by-default | jq -r '.EbsEncryptionByDefault' ) != "true" ]]; then
+    if [[ $(aws ec2 get-ebs-encryption-by-default | jq -r '.EbsEncryptionByDefault') != "true" ]]; then
       echo "Enabling EBS encryption by default"
       aws ec2 enable-ebs-encryption-by-default > /dev/null
     fi

@@ -11,8 +11,8 @@ MONGODB_VERSION=6.0
 
 APT_PACKAGES=(curl vim jq nmap calibre flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks
               apt-transport-https openssh-server bash-completion python3-gi libsqlite3-dev software-properties-common python3-gi-cairo
-              libbz2-dev csvkit make build-essential smartmontools gconf-service chntpw liblzma-dev golang-src lsb-release libffi-dev
-              gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev gir1.2-gtk-3.0 libreadline-dev gnupg-agent libgdk-pixbuf2.0-0 dconf-editor)
+              libbz2-dev csvkit make build-essential smartmontools gconf-service chntpw liblzma-dev golang-src lsb-release gnupg-agent
+              gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev gir1.2-gtk-3.0 libreadline-dev libffi-dev libgdk-pixbuf2.0-0 dconf-editor)
 
 PYTHON_PACKAGES=(
   pipenv
@@ -158,6 +158,9 @@ if ${INSTALL}; then
   # Pyenv #############################
   "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
+  # Terragrunt ########################
+  sudo wget -qO /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/latest/download/terragrunt_linux_386 && sudo chmod +x /usr/local/bin/terragrunt
+
   # Terracognita ######################
   wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
 
@@ -174,7 +177,7 @@ if ${INSTALL}; then
   curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
   # AWS CLI ###########################
-  wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -O - | sudo busybox unzip -od /tmp - && sudo /tmp/aws/install --update && rm -rf /tmp/aws
+  wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -O - | busybox unzip -od /tmp - && sudo bash /tmp/aws/install --update && rm -rf /tmp/aws
 
   # AWS Eksctl ########################
   wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
@@ -203,7 +206,7 @@ if ${CONFIGURE}; then
 
   # GIT ###############################
   for O in "${GIT_CONFIGURATION_OPTIONS[@]}"; do
-    git config --global "$(echo "${O}"| cut -d, -f1)" "$(echo "${O}"| cut -d, -f2)"
+    git config --global "$(echo "${O}" | cut -d, -f1)" "$(echo "${O}" | cut -d, -f2)"
   done
 
   # GitHub ############################
@@ -250,17 +253,18 @@ if ${CONFIGURE}; then
     alias vlt_update_tfvars='source .vltrc && vlt secrets update -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" tfvars="$(cat terraform.tfvars.json)"'
 
 		# Terraform
+		alias tf='terraform'
 		alias tf_fmt='terraform fmt -recursive'
-		alias tf_get='terraform get'
-		alias tf_out='terraform output'
 		alias tf_unlock='terraform force-unlock -force'
 		alias tf_apply='terraform apply plan && rm -f plan'
 		alias tf_plan_refresh='tf_fmt && tf_get && terraform plan -parallelism=50 -out=plan'
 		alias tf_plan='tf_plan_refresh -refresh=false'
-		alias tf_getup='tf_get -update'
-		alias tf_kube='tf_out -raw kubeconfig > "${HOME}/.kube/terraform" && chmod 0600 "${HOME}/.kube/terraform"'
 		alias tf_reset='rm -vrf .terraform && terraform init'
 		alias tf_reset_gcs_encrypted='tf_reset -backend-config=.encryption_key.gcs.tfbackend'
+
+    # Terragrunt
+    alias tg='terragrunt'
+    alias tg_unlock='tg force-unlock -force'
 
 		# Golang
 		export GOPATH="$HOME/.go"

@@ -9,4 +9,4 @@ openssl req -subj '/C=US/CN=Postman Proxy' -new -newkey rsa:2048 -sha256 -days 3
 openssl s_client -servername "oidc.eks.us-east-1.amazonaws.com" -showcerts -connect "oidc.eks.us-east-1.amazonaws.com:443" 2>&- | tac | sed -n '/-----END CERTIFICATE-----/,/-----BEGIN CERTIFICATE-----/p; /-----BEGIN CERTIFICATE-----/q' | tac | openssl x509 -fingerprint -noout | sed 's/://g' | awk -F= '{print tolower($2)}'
 
 # Listar resource requests
-kubectl -n prd get deploy -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[0].resources}{"\n"}{end}'
+kubectl -n prd get deploy -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.replicas, .spec.template.spec.containers[0].resources}{"\n"}{end}'
