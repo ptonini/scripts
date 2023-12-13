@@ -254,16 +254,17 @@ if ${CONFIGURE}; then
 
 		# Terraform
 		alias tf='terraform'
-		alias tf_fmt='terraform fmt -recursive'
-		alias tf_unlock='terraform force-unlock -force'
-		alias tf_apply='terraform apply plan && rm -f plan'
-		alias tf_plan_refresh='tf_fmt && tf_get && terraform plan -parallelism=50 -out=plan'
+		alias tf_fmt='tf fmt -recursive'
+		alias tf_unlock='tf force-unlock -force'
+		alias tf_apply='tf apply plan && rm -f plan'
+		alias tf_plan_refresh='tf_fmt && tf get && tf plan -parallelism=50 -out=plan'
 		alias tf_plan='tf_plan_refresh -refresh=false'
-		alias tf_reset='rm -vrf .terraform && terraform init'
+		alias tf_reset='rm -vrf .terraform && tf init'
 		alias tf_reset_gcs_encrypted='tf_reset -backend-config=.encryption_key.gcs.tfbackend'
 
     # Terragrunt
     alias tg='terragrunt'
+    alias tg_runall='tg run-all'
     alias tg_unlock='tg force-unlock -force'
 
 		# Golang
