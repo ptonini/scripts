@@ -263,7 +263,7 @@ if ${CONFIGURE}; then
 		alias tf_reset_gcs_encrypted='tf_reset -backend-config=.encryption_key.gcs.tfbackend'
 
     # Terragrunt
-    alias tg='terragrunt'
+    alias tg='terragrunt -refresh=false'
     alias tg_runall='tg run-all'
     alias tg_unlock='tg force-unlock -force'
 

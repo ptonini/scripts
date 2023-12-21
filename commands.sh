@@ -1,4 +1,3 @@
-
 # Instala ptonini/toolbox no contexto corrente
 helm install --namespace default toolbox ptonini/workload --set image=ghcr.io/ptonini/toolbox:latest --set-json service='{"enabled": false}'
 
