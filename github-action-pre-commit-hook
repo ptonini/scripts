@@ -1,0 +1,3 @@
+#!/bin/sh
+ncc build -m src/main.js
+git add dist/index.js

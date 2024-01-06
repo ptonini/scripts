@@ -1,0 +1,39 @@
+#!/bin/bash
+
+FOLDER=${HOME}/Projetos/ptonini-actions
+ORG=linxsa
+PREFIX=${ORG}/terraform-
+OAUTH_TOKEN_ID=ot-B9X4FWLgxPtP8X3J
+TF_TOKEN=$(jq -r '.credentials["app.terraform.io"].token' ~/.terraform.d/credentials.tfrc.json)
+HEADERS=(--header "Authorization: Bearer $TF_TOKEN" --header "Content-Type: application/vnd.api+json")
+
+
+#for R in $(gh search repos --owner "${SOURCE}" "${PREFIX}" --json name -q '.[].name' -L 1000 | grep "${PREFIX}"); do
+for R in "${FOLDER}"/*; do
+  (cd "${R}" || exit
+
+#  [[ -z $(git tag) ]] && pwd && git commit -a --amend -m "chore: first commit" && git push --force
+
+#  PROVIDER=$(basename $R | cut -d- -f 1)
+#  MODULE=$(basename $R | cut -d- -f 2-)
+#  PAYLOAD="{\"data\":{\"attributes\":{\"vcs-repo\":{\"identifier\":\"${ORG}/terraform-${PROVIDER}-${MODULE}\",\"oauth-token-id\":\"${OAUTH_TOKEN_ID}\",\"display_identifier\":\"${ORG}/terraform-${PROVIDER}-${MODULE}\"},\"no-code\":false},\"type\":\"registry-modules\"}}"
+
+#  echo ${PROVIDER} ${MODULE}
+#  echo "${PAYLOAD}" | jq
+#  curl "${HEADERS[@]}" --data "${PAYLOAD}" --request POST https://app.terraform.io/api/v2/organizations/${ORG}/registry-modules/vcs
+
+#  git init && git add . && git commit -m "chore: first commit"
+#  gh repo create "${PREFIX}${R}" --source . --push --internal
+#
+#  gh repo delete --yes
+#  rm -rf .git
+#
+#  if ! [[  -d ./.git  ]]; then echo; fi
+#  cp -vf ../workflows/src/publish-github-action.yml .github/workflows/publish.yml
+#  rm -v .github/workflows/create-release.yml
+#  gh repo edit --visibility internal
+#  git commit -a --amend -m "chore: first commit [skip ci]"
+#  git push --force
+#  for T in $(git tag); do git tag -d "${T}" && git push --delete origin "${T}"; done
+  )
+done

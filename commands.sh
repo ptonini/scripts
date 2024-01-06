@@ -9,3 +9,6 @@ openssl s_client -servername "oidc.eks.us-east-1.amazonaws.com" -showcerts -conn
 
 # Listar resource requests
 kubectl -n prd get deploy -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.replicas, .spec.template.spec.containers[0].resources}{"\n"}{end}'
+
+# Aplicar bucket policy
+aws s3api put-bucket-policy --bucket "${B}" --policy "${POLICY}"

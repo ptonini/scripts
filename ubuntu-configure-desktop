@@ -9,16 +9,15 @@ UBUNTU_VERSION=22.04
 NODEJS_VERSION=20
 MONGODB_VERSION=6.0
 
-APT_PACKAGES=(curl vim jq nmap calibre flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks
+APT_PACKAGES=(curl vim jq nmap flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks make
               apt-transport-https openssh-server bash-completion python3-gi libsqlite3-dev software-properties-common python3-gi-cairo
-              libbz2-dev csvkit make build-essential smartmontools gconf-service chntpw liblzma-dev golang-src lsb-release gnupg-agent
+              libbz2-dev csvkit build-essential smartmontools gconf-service chntpw liblzma-dev golang-src lsb-release gnupg-agent
               gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev gir1.2-gtk-3.0 libreadline-dev libffi-dev libgdk-pixbuf2.0-0 dconf-editor)
 
 PYTHON_PACKAGES=(
   pipenv
   ansible
   openstacksdk
-  azure-cli
   checkov
 )
 
@@ -144,10 +143,13 @@ if ${INSTALL}; then
   done
   helm repo update || true
 
-  # Helm plugins #################
+  # Helm plugins ######################
   for P in "${HELM_PLUGINS[@]}"; do
     helm plugin install "${P}" || true
   done
+
+  # Calibre ###########################
+  wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
   # ZeroTier ##########################
   curl -fsSL https://install.zerotier.com | sudo bash || true
@@ -158,7 +160,13 @@ if ${INSTALL}; then
   # Pyenv #############################
   "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
-  # Terragrunt ########################
+  # Azure AzCopy ######################
+  wget -q https://aka.ms/downloadazcopy-v10-linux -O - | sudo tar -C /usr/local/bin --overwrite --strip-components=1 --exclude=*.txt -xzvf - && sudo chmod +x /usr/local/bin/azcopy
+
+  #  Azure Kubelogin ##################
+  wget -q https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip -O - | sudo busybox unzip -jo - bin/linux_amd64/kubelogin -d /usr/local/bin  && sudo chmod +x /usr/local/bin/kubelogin
+
+ # Terragrunt ########################
   sudo wget -qO /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/latest/download/terragrunt_linux_386 && sudo chmod +x /usr/local/bin/terragrunt
 
   # Terracognita ######################
@@ -167,10 +175,7 @@ if ${INSTALL}; then
   # K9s ###############################
   wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - k9s
 
-  # Kubelogin #########################
-  wget -q https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip -O - | sudo busybox unzip -jo - bin/linux_amd64/kubelogin -d /usr/local/bin  && sudo chmod +x /usr/local/bin/kubelogin
-
-  # Kind ##############################
+   # Kind ##############################
   sudo wget -qO /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64
 
   # Tilt ##############################
@@ -212,6 +217,9 @@ if ${CONFIGURE}; then
   # GitHub ############################
   gh config set git_protocol ssh -h github.com
 
+  # Azure #############################
+  az config set --only-show-errors extension.use_dynamic_install=yes_without_prompt
+
   # Custom bashrc commands ############
   CUSTOM_BLOCK_HEAD="######## BEGIN CUSTOM COMMANDS ########"
   CUSTOM_BLOCK_TAIL="######### END CUSTOM COMMANDS #########"
@@ -237,12 +245,12 @@ if ${CONFIGURE}; then
 
 		# Git
 		alias git_init='git init && git add . && git commit -m "chore: first commit"'
-		alias git_reset='rm -rf .git && git init'
+		alias git_reset='rm -rf .git && git_init'
 
 		# Github
 		export GH_TOKEN=$(cat "${HOME}/.github_token" 2> /dev/null)
 		source <(gh completion --shell bash)
-		alias gh_create_tf_mod='gh repo create ptonini/terraform-$(pwd | xargs basename) --public --source . --push && git push --tags'
+		alias gh_create_tf_mod='f() {gh repo create ptonini/terraform-$(pwd | xargs basename) --public --source . --push && git push --tags}; '
 
 		# Kubeconfig
 		export KUBECONFIG=${HOME}/.kube/config:${HOME}/.kube/terraform
@@ -263,8 +271,7 @@ if ${CONFIGURE}; then
 		alias tf_reset_gcs_encrypted='tf_reset -backend-config=.encryption_key.gcs.tfbackend'
 
     # Terragrunt
-    alias tg='terragrunt -refresh=false'
-    alias tg_runall='tg run-all'
+    alias tg='terragrunt $([[ -e "./terragrunt.hcl" ]] || echo "run-all")'
     alias tg_unlock='tg force-unlock -force'
 
 		# Golang
@@ -282,6 +289,9 @@ if ${CONFIGURE}; then
 
 		# Rust
 		source "$HOME/.cargo/env"
+
+		# Jetbrains Toolbox
+		export PATH="$HOME/.local/share/JetBrains/Toolbox/scripts:$PATH"
 	EOF
 	) -e ":a; n; /${CUSTOM_BLOCK_TAIL}/ {p; b}; ba}; p" "${HOME}/.bashrc"
 fi

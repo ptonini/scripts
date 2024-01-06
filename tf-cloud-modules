@@ -1,0 +1,15 @@
+#!/bin/bash
+
+ORG=linxsa
+TOKEN=$(jq -r '.credentials["app.terraform.io"].token' ~/.terraform.d/credentials.tfrc.json)
+HEADERS=(--header "Authorization: Bearer $TOKEN" --header "Content-Type: application/vnd.api+json")
+
+for M in $(curl -sS "${HEADERS[@]}" --request GET "https://app.terraform.io/api/v2/organizations/${ORG}/registry-modules?page%5Bsize%5D=100" | jq -c '.data[].attributes | [.name, .provider]'); do
+  MODULE=$(echo "${M}" | jq -r .[0])
+  PROVIDER=$(echo "${M}" | jq -r .[1])
+#  curl -sS "${HEADERS[@]}" --request DELETE "https://app.terraform.io/api/v2/organizations/${ORG}/registry-modules/private/${ORG}/${MODULE}/${PROVIDER}/1.0.0"
+done
+
+
+
+
