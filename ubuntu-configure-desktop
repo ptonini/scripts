@@ -6,13 +6,14 @@ CONFIGURE=true
 
 UBUNTU_RELEASE=jammy
 UBUNTU_VERSION=22.04
-NODEJS_VERSION=20
-MONGODB_VERSION=6.0
+MONGODB_VERSION=7.0
+NODEJS_VERSION=$(gh release list --repo nodejs/node | grep Latest | awk -F'[" ".]' '{print $3}')
+KUBERNETES_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | awk -F. '{ print $1 "." $2 }')
 
-APT_PACKAGES=(curl vim jq nmap flameshot cheese ncdu tuxtype git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks make
-              apt-transport-https openssh-server bash-completion python3-gi libsqlite3-dev software-properties-common python3-gi-cairo
-              libbz2-dev csvkit build-essential smartmontools gconf-service chntpw liblzma-dev golang-src lsb-release gnupg-agent
-              gconf2 libgconf-2-4 libssl-dev gnupg2 zlib1g-dev gir1.2-gtk-3.0 libreadline-dev libffi-dev libgdk-pixbuf2.0-0 dconf-editor)
+APT_PACKAGES=(curl vim jq nmap flameshot cheese ncdu git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks openssh-server make
+              build-essential apt-transport-https csvkit bash-completion libsqlite3-dev liblzma-dev software-properties-common gnupg2 gconf2
+              libbz2-dev python3-gi python3-gi-cairo smartmontools gconf-service golang-src lsb-release gnupg-agent libreadline-dev chntpw
+              libgconf-2-4 libssl-dev zlib1g-dev gir1.2-gtk-3.0 libffi-dev libgdk-pixbuf2.0-0 dconf-editor putty-tools)
 
 PYTHON_PACKAGES=(
   pipenv
@@ -30,8 +31,8 @@ CUSTOM_APT_REPOSITORIES=(
   "github-cli,https://cli.github.com/packages stable main,https://cli.github.com/packages/githubcli-archive-keyring.gpg"
   "azure,https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main,https://packages.microsoft.com/keys/microsoft.asc"
   "google-chrome,https://dl.google.com/linux/chrome/deb/ stable main,https://dl.google.com/linux/linux_signing_key.pub"
-  "google-cloud-packages,https://apt.kubernetes.io/ kubernetes-xenial main,https://packages.cloud.google.com/apt/doc/apt-key.gpg"
   "google-cloud-k8s,https://packages.cloud.google.com/apt cloud-sdk main,https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+  "kubernetes,https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/ /,https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key"
   "helm,https://baltocdn.com/helm/stable/debian/ all main,https://baltocdn.com/helm/signing.asc"
   "mongodb,https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse,https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
   "hashicorp,https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main,https://apt.releases.hashicorp.com/gpg"
@@ -83,6 +84,7 @@ HELM_REPOSITORIES=(
 
 HELM_PLUGINS=(
  https://github.com/helm-unittest/helm-unittest
+ https://github.com/chartmuseum/helm-push
 )
 
 NPM_PACKAGES=(
@@ -127,20 +129,14 @@ if ${INSTALL}; then
   sudo npm update -g
 
   # Ansible Galaxy ####################
-  for U in "${ANSIBLE_COLLECTIONS[@]}"; do
-    ansible-galaxy collection install --upgrade "${U}"
-  done
+  for U in "${ANSIBLE_COLLECTIONS[@]}"; do ansible-galaxy collection install --upgrade "${U}"; done
 
   # Flatpaks ##########################
   sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  for F in "${FLATPAKS[@]}"; do
-    flatpak install --noninteractive --or-update -y "${F}"
-  done
+  for F in "${FLATPAKS[@]}"; do flatpak install --noninteractive --or-update -y "${F}"; done
 
   # Helm repositories #################
-  for R in "${HELM_REPOSITORIES[@]}"; do
-    helm repo add "$(echo "${R}"| cut -d, -f1)" "$(echo "${R}"| cut -d, -f2)"
-  done
+  for R in "${HELM_REPOSITORIES[@]}"; do helm repo add "$(echo "${R}"| cut -d, -f1)" "$(echo "${R}"| cut -d, -f2)"; done
   helm repo update || true
 
   # Helm plugins ######################
@@ -163,13 +159,16 @@ if ${INSTALL}; then
   # Azure AzCopy ######################
   wget -q https://aka.ms/downloadazcopy-v10-linux -O - | sudo tar -C /usr/local/bin --overwrite --strip-components=1 --exclude=*.txt -xzvf - && sudo chmod +x /usr/local/bin/azcopy
 
-  #  Azure Kubelogin ##################
+  # Azure Kubelogin ###################
   wget -q https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip -O - | sudo busybox unzip -jo - bin/linux_amd64/kubelogin -d /usr/local/bin  && sudo chmod +x /usr/local/bin/kubelogin
 
- # Terragrunt ########################
-  sudo wget -qO /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/latest/download/terragrunt_linux_386 && sudo chmod +x /usr/local/bin/terragrunt
+  # Terragrunt ########################
+  sudo wget -qO /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/latest/download/terragrunt_linux_386 && sudo chmod -v +x /usr/local/bin/terragrunt
 
-  # Terracognita ######################
+   # yq ################################
+  sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod -v +x /usr/local/bin/yq
+
+ # Terracognita ######################
   wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
 
   # K9s ###############################
@@ -182,7 +181,7 @@ if ${INSTALL}; then
   curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
   # AWS CLI ###########################
-  wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -O - | busybox unzip -od /tmp - && sudo bash /tmp/aws/install --update && rm -rf /tmp/aws
+  wget -q https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -O - | busybox unzip -oqd /tmp - && sudo bash /tmp/aws/install --update && rm -rf /tmp/aws
 
   # AWS Eksctl ########################
   wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
@@ -210,9 +209,7 @@ if ${CONFIGURE}; then
   sudo usermod -aG docker "${USER}"
 
   # GIT ###############################
-  for O in "${GIT_CONFIGURATION_OPTIONS[@]}"; do
-    git config --global "$(echo "${O}" | cut -d, -f1)" "$(echo "${O}" | cut -d, -f2)"
-  done
+  for O in "${GIT_CONFIGURATION_OPTIONS[@]}"; do git config --global "$(echo "${O}" | cut -d, -f1)" "$(echo "${O}" | cut -d, -f2)"; done
 
   # GitHub ############################
   gh config set git_protocol ssh -h github.com
@@ -221,11 +218,12 @@ if ${CONFIGURE}; then
   az config set --only-show-errors extension.use_dynamic_install=yes_without_prompt
 
   # Custom bashrc commands ############
-  CUSTOM_BLOCK_HEAD="######## BEGIN CUSTOM COMMANDS ########"
-  CUSTOM_BLOCK_TAIL="######### END CUSTOM COMMANDS #########"
+  CUSTOM_BLOCK_HEAD="############################ BEGIN CUSTOM COMMANDS ############################"
+  CUSTOM_BLOCK_TAIL="############################# END CUSTOM COMMANDS #############################"
   grep -qxF "${CUSTOM_BLOCK_HEAD}" "${HOME}/.bashrc" || printf "\n\n%s" "${CUSTOM_BLOCK_HEAD}" >> "${HOME}/.bashrc"
   grep -qxF "${CUSTOM_BLOCK_TAIL}" "${HOME}/.bashrc" || printf "\n%s" "${CUSTOM_BLOCK_TAIL}" >> "${HOME}/.bashrc"
   sed -i -ne "/${CUSTOM_BLOCK_HEAD}/ {p; r "<(cat <<- 'EOF'
+
 		# Pyenv
 		export PYENV_ROOT="$HOME/.pyenv"
 		command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
@@ -240,25 +238,28 @@ if ${CONFIGURE}; then
 		source <(eksctl completion bash)
 		alias aws_login='aws sso login --sso-session'
 
-    # Azure
-    source /etc/bash_completion.d/azure-cli
+		# Azure
+		source /etc/bash_completion.d/azure-cli
 
 		# Git
 		alias git_init='git init && git add . && git commit -m "chore: first commit"'
 		alias git_reset='rm -rf .git && git_init'
 
 		# Github
-		export GH_TOKEN=$(cat "${HOME}/.github_token" 2> /dev/null)
 		source <(gh completion --shell bash)
-		alias gh_create_tf_mod='f() {gh repo create ptonini/terraform-$(pwd | xargs basename) --public --source . --push && git push --tags}; '
+		alias gh_login='gh auth login -p ssh -s admin:org,workflow -w'
+		gh_create_tf_mod () {
+		  gh repo create "${1}/terraform-$(pwd | xargs basename)" "--${2}" --source . --push
+		  git push --tags
+		}
 
 		# Kubeconfig
 		export KUBECONFIG=${HOME}/.kube/config:${HOME}/.kube/terraform
 		source <(kubectl completion bash)
 
-    # Vlt
-    alias vlt_get_tfvars='source .vltrc && vlt secrets get -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" --plaintext tfvars | jq > terraform.tfvars.json'
-    alias vlt_update_tfvars='source .vltrc && vlt secrets update -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" tfvars="$(cat terraform.tfvars.json)"'
+		# Vlt
+		alias vlt_get_tfvars='source .vltrc && vlt secrets get -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" --plaintext tfvars | jq > terraform.tfvars.json'
+		alias vlt_update_tfvars='source .vltrc && vlt secrets update -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" tfvars="$(cat terraform.tfvars.json)"'
 
 		# Terraform
 		alias tf='terraform'
@@ -269,10 +270,14 @@ if ${CONFIGURE}; then
 		alias tf_plan='tf_plan_refresh -refresh=false'
 		alias tf_reset='rm -vrf .terraform && tf init'
 		alias tf_reset_gcs_encrypted='tf_reset -backend-config=.encryption_key.gcs.tfbackend'
+		complete -C /usr/bin/terraform terraform
+		complete -C /usr/bin/terraform tf
 
-    # Terragrunt
-    alias tg='terragrunt $([[ -e "./terragrunt.hcl" ]] || echo "run-all")'
-    alias tg_unlock='tg force-unlock -force'
+		# Terragrunt
+		alias tg='terragrunt $([[ -e "./terragrunt.hcl" ]] || echo "run-all")'
+		alias tg_unlock='tg force-unlock -force'
+    complete -C /usr/bin/terraform terragrunt
+    complete -C /usr/bin/terraform tg
 
 		# Golang
 		export GOPATH="$HOME/.go"
@@ -288,10 +293,11 @@ if ${CONFIGURE}; then
 		source <(tilt completion bash)
 
 		# Rust
-		source "$HOME/.cargo/env"
+		. "$HOME/.cargo/env"
 
 		# Jetbrains Toolbox
 		export PATH="$HOME/.local/share/JetBrains/Toolbox/scripts:$PATH"
+
 	EOF
 	) -e ":a; n; /${CUSTOM_BLOCK_TAIL}/ {p; b}; ba}; p" "${HOME}/.bashrc"
 fi
