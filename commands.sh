@@ -20,7 +20,13 @@ aws s3 sync s3://nodis-resources/ ./nodis-resources
 az storage azcopy blob upload -c nodis-archive --account-name systems739655753 -s /data/nodis-resources --recursive
 
 # Converter json para yaml
-for R in ./*; do yq -oy "$R" > "$(basename "$R" .json).yaml"; done
+for R in ./*; do yq -y "$R" > "$(basename "$R" .json).yaml"; done
 
 # Remove git tags
 for T in $(git tag); do git tag -d "${T}" && git push --delete origin "${T}"; done
+
+# Rotaciona data streams do elastic
+for DS in $(jq -r .data_streams[].name streams.json); do echo "POST /$DS/_rollover"; done
+
+# Atualiza charts recursivamente
+for R in ./*; do (cd $R && helm dep up); done

@@ -15,12 +15,7 @@ APT_PACKAGES=(curl vim jq nmap flameshot cheese ncdu git cpu-x flatpak remmina-*
               libbz2-dev python3-gi python3-gi-cairo smartmontools gconf-service golang-src lsb-release gnupg-agent libreadline-dev chntpw
               libgconf-2-4 libssl-dev zlib1g-dev gir1.2-gtk-3.0 libffi-dev libgdk-pixbuf2.0-0 dconf-editor putty-tools)
 
-PYTHON_PACKAGES=(
-  pipenv
-  ansible
-  openstacksdk
-  checkov
-)
+PYTHON_PACKAGES=(pipenv ansible openstacksdk checkov yq)
 
 DEB_PACKAGES=(
   "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
@@ -58,6 +53,7 @@ FLATPAKS=(
   com.github.micahflee.torbrowser-launcher
   com.slack.Slack
   com.getpostman.Postman
+  com.microsoft.AzureStorageExplorer
 )
 
 ANSIBLE_COLLECTIONS=(
@@ -87,10 +83,7 @@ HELM_PLUGINS=(
  https://github.com/chartmuseum/helm-push
 )
 
-NPM_PACKAGES=(
-  @vercel/ncc
-  typescript
-)
+NPM_PACKAGES=(@vercel/ncc typescript release-please)
 
 GIT_CONFIGURATION_OPTIONS=(
   "core.editor,vim"
@@ -165,16 +158,13 @@ if ${INSTALL}; then
   # Terragrunt ########################
   sudo wget -qO /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/latest/download/terragrunt_linux_386 && sudo chmod -v +x /usr/local/bin/terragrunt
 
-   # yq ################################
-  sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod -v +x /usr/local/bin/yq
-
- # Terracognita ######################
+  # Terracognita ######################
   wget -q https://github.com/cycloidio/terracognita/releases/latest/download/terracognita-linux-amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite --transform='s/-linux-amd64//' -f - terracognita-linux-amd64
 
   # K9s ###############################
   wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - k9s
 
-   # Kind ##############################
+  # Kind ##############################
   sudo wget -qO /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/latest/download/kind-linux-amd64
 
   # Tilt ##############################
@@ -185,6 +175,9 @@ if ${INSTALL}; then
 
   # AWS Eksctl ########################
   wget -q https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz -O - | sudo tar -xzvC /usr/local/bin/ --overwrite -f - eksctl
+
+  # hcl2json ##########################
+  sudo wget -qO /usr/local/bin/hcl2json https://github.com/tmccombs/hcl2json/releases/latest/download/hcl2json_linux_amd64 && sudo chmod -v +x /usr/local/bin/hcl2json
 
   # Upgrade installed packages
   sudo apt-get upgrade -y
@@ -236,48 +229,44 @@ if ${CONFIGURE}; then
 		# AWS
 		complete -C "$(which aws_completer)" aws
 		source <(eksctl completion bash)
-		alias aws_login='aws sso login --sso-session'
+		alias aws-login='aws sso login --sso-session'
 
 		# Azure
 		source /etc/bash_completion.d/azure-cli
 
 		# Git
-		alias git_init='git init && git add . && git commit -m "chore: first commit"'
-		alias git_reset='rm -rf .git && git_init'
+		alias git-init='git init && git add . && git commit -m "chore: first commit"'
+		alias git-reset='rm -rf .git && git_init'
 
 		# Github
 		source <(gh completion --shell bash)
-		alias gh_login='gh auth login -p ssh -s admin:org,workflow -w'
-		gh_create_tf_mod () {
-		  gh repo create "${1}/terraform-$(pwd | xargs basename)" "--${2}" --source . --push
-		  git push --tags
-		}
+		alias gh-login='gh auth login -p ssh -s admin:org,workflow,delete_repo -w'
+		gh-create-tf-mod () { gh repo create "${1}/terraform-$(pwd | xargs basename)" "--${2}" --source . --push }
 
 		# Kubeconfig
 		export KUBECONFIG=${HOME}/.kube/config:${HOME}/.kube/terraform
 		source <(kubectl completion bash)
 
 		# Vlt
-		alias vlt_get_tfvars='source .vltrc && vlt secrets get -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" --plaintext tfvars | jq > terraform.tfvars.json'
-		alias vlt_update_tfvars='source .vltrc && vlt secrets update -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" tfvars="$(cat terraform.tfvars.json)"'
+		alias vlt-get-tfvars='source .vltrc && vlt secrets get -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" --plaintext tfvars | jq > terraform.tfvars.json'
+		alias vlt-update-tfvars='source .vltrc && vlt secrets update -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" tfvars="$(cat terraform.tfvars.json)"'
 
 		# Terraform
 		alias tf='terraform'
-		alias tf_fmt='tf fmt -recursive'
-		alias tf_unlock='tf force-unlock -force'
-		alias tf_apply='tf apply plan && rm -f plan'
-		alias tf_plan_refresh='tf_fmt && tf get && tf plan -parallelism=50 -out=plan'
-		alias tf_plan='tf_plan_refresh -refresh=false'
-		alias tf_reset='rm -vrf .terraform && tf init'
-		alias tf_reset_gcs_encrypted='tf_reset -backend-config=.encryption_key.gcs.tfbackend'
+		alias tf-fmt='tf fmt -recursive'
+		alias tf-unlock='tf force-unlock -force'
+		alias tf-apply='tf apply plan && rm -f plan'
+		alias tf-plan-refresh='tf-fmt && tf get && tf plan -parallelism=50 -out=plan'
+		alias tf-plan='tf-plan-refresh -refresh=false'
+		alias tf-reset='rm -vrf .terraform && tf init'
+		alias tf-reset-gcs-encrypted='tf-reset -backend-config=.encryption_key.gcs.tfbackend'
 		complete -C /usr/bin/terraform terraform
-		complete -C /usr/bin/terraform tf
 
 		# Terragrunt
 		alias tg='terragrunt $([[ -e "./terragrunt.hcl" ]] || echo "run-all")'
-		alias tg_unlock='tg force-unlock -force'
+		alias tg-unlock='tg force-unlock -force'
+		alias tg-fmt='tg hclfmt'
     complete -C /usr/bin/terraform terragrunt
-    complete -C /usr/bin/terraform tg
 
 		# Golang
 		export GOPATH="$HOME/.go"
