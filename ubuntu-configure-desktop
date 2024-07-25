@@ -7,7 +7,7 @@ CONFIGURE=true
 UBUNTU_RELEASE=jammy
 UBUNTU_VERSION=22.04
 MONGODB_VERSION=7.0
-NODEJS_VERSION=$(gh release list --repo nodejs/node | grep Latest | awk -F'[" ".]' '{print $3}')
+NODEJS_VERSION=21
 KUBERNETES_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | awk -F. '{ print $1 "." $2 }')
 
 APT_PACKAGES=(curl vim jq nmap flameshot cheese ncdu git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks openssh-server make
@@ -20,6 +20,7 @@ PYTHON_PACKAGES=(pipenv ansible openstacksdk checkov yq)
 DEB_PACKAGES=(
   "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
   "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+  "https://launchpadlibrarian.net/570407966/grub-customizer_5.1.0-3build1_amd64.deb"
 )
 
 CUSTOM_APT_REPOSITORIES=(
@@ -34,7 +35,7 @@ CUSTOM_APT_REPOSITORIES=(
   "docker,https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable,https://download.docker.com/linux/ubuntu/gpg"
   "postgres,https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main,https://www.postgresql.org/media/keys/ACCC4CF8.asc"
   "pgadmin,https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main,https://www.pgadmin.org/static/packages_pgadmin_org.pub"
-  "spotify,http://repository.spotify.com stable non-free,https://download.spotify.com/debian/pubkey_7A3A762FAFD4A51F.gpg"
+  "spotify,http://repository.spotify.com stable non-free,https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg"
   "virtualbox,https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib,https://www.virtualbox.org/download/oracle_vbox_2016.asc"
   "yarn,https://dl.yarnpkg.com/debian stable main,https://dl.yarnpkg.com/debian/pubkey.gpg"
   "node,https://deb.nodesource.com/node_${NODEJS_VERSION}.x nodistro main,https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key"
@@ -210,6 +211,9 @@ if ${CONFIGURE}; then
   # Azure #############################
   az config set --only-show-errors extension.use_dynamic_install=yes_without_prompt
 
+  # Environment #######################
+  grep -qxF 'export GTK_IM_MODULE=cedilla' /etc/environment || echo 'export GTK_IM_MODULE=cedilla' >> /etc/environment
+
   # Custom bashrc commands ############
   CUSTOM_BLOCK_HEAD="############################ BEGIN CUSTOM COMMANDS ############################"
   CUSTOM_BLOCK_TAIL="############################# END CUSTOM COMMANDS #############################"
@@ -241,10 +245,9 @@ if ${CONFIGURE}; then
 		# Github
 		source <(gh completion --shell bash)
 		alias gh-login='gh auth login -p ssh -s admin:org,workflow,delete_repo -w'
-		gh-create-tf-mod () { gh repo create "${1}/terraform-$(pwd | xargs basename)" "--${2}" --source . --push }
+		gh-create-tf-mod () { gh repo create "${1}/terraform-$(pwd | xargs basename)" "--${2}" --source . --push; }
 
 		# Kubeconfig
-		export KUBECONFIG=${HOME}/.kube/config:${HOME}/.kube/terraform
 		source <(kubectl completion bash)
 
 		# Vlt
