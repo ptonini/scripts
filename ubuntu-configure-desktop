@@ -1,50 +1,54 @@
 #!/bin/bash
 set -e
 
-INSTALL=true
+SOFTWARE=false
 CONFIGURE=true
 
-UBUNTU_RELEASE=jammy
-UBUNTU_VERSION=22.04
+source /etc/upstream-release/lsb-release
+
+UBUNTU_RELEASE=$DISTRIB_CODENAME
+UBUNTU_VERSION=$DISTRIB_RELEASE
 MONGODB_VERSION=7.0
 NODEJS_VERSION=21
+DOTNET_VERSION=8.0
 KUBERNETES_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | awk -F. '{ print $1 "." $2 }')
 
-APT_PACKAGES=(curl vim jq nmap flameshot cheese ncdu git cpu-x flatpak remmina-* python3-pip golang-go lua5.1 luarocks openssh-server make
-              build-essential apt-transport-https csvkit bash-completion libsqlite3-dev liblzma-dev software-properties-common gnupg2 gconf2
-              libbz2-dev python3-gi python3-gi-cairo smartmontools gconf-service golang-src lsb-release gnupg-agent libreadline-dev chntpw
-              libgconf-2-4 libssl-dev zlib1g-dev gir1.2-gtk-3.0 libffi-dev libgdk-pixbuf2.0-0 dconf-editor putty-tools)
+APT_PACKAGES=(curl vim jq nmap flameshot cheese ncdu git cpu-x flatpak remmina-* python3-pip pipx golang-go lua5.1 luarocks
+              build-essential apt-transport-https libsqlite3-dev liblzma-dev gnupg2 openssh-server golang-src make putty-tools
+              libbz2-dev python3-gi python3-gi-cairo smartmontools lsb-release gnupg-agent libreadline-dev chntpw bash-completion
+              libssl-dev zlib1g-dev gir1.2-gtk-3.0 libffi-dev libgdk-pixbuf2.0-0 dconf-editor software-properties-common csvkit
+              qemu-kvm libvirt-daemon-system libvirt-clients virt-manager bridge-utils arduino libpam-kwallet5 kwalletmanager
+)
 
 PYTHON_PACKAGES=(pipenv ansible openstacksdk checkov yq)
 
 DEB_PACKAGES=(
   "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
-  "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
   "https://launchpadlibrarian.net/570407966/grub-customizer_5.1.0-3build1_amd64.deb"
 )
 
 CUSTOM_APT_REPOSITORIES=(
-  "github-cli,https://cli.github.com/packages stable main,https://cli.github.com/packages/githubcli-archive-keyring.gpg"
-  "azure,https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main,https://packages.microsoft.com/keys/microsoft.asc"
   "google-chrome,https://dl.google.com/linux/chrome/deb/ stable main,https://dl.google.com/linux/linux_signing_key.pub"
   "google-cloud-k8s,https://packages.cloud.google.com/apt cloud-sdk main,https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+  "github-cli,https://cli.github.com/packages stable main,https://cli.github.com/packages/githubcli-archive-keyring.gpg"
+  "helm,https://packages.buildkite.com/helm-linux/helm-debian/any/ any main,https://packages.buildkite.com/helm-linux/helm-debian/gpgkey"
+  "spotify,http://repository.spotify.com stable non-free,https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg"
+  "yarn,https://dl.yarnpkg.com/debian stable main,https://dl.yarnpkg.com/debian/pubkey.gpg"
+  "lens,https://downloads.k8slens.dev/apt/debian stable main,https://downloads.k8slens.dev/keys/gpg"
+  "azure,https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main,https://packages.microsoft.com/keys/microsoft.asc"
   "kubernetes,https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/ /,https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key"
-  "helm,https://baltocdn.com/helm/stable/debian/ all main,https://baltocdn.com/helm/signing.asc"
-  "mongodb,https://repo.mongodb.org/apt/ubuntu ${UBUNTU_RELEASE}/mongodb-org/${MONGODB_VERSION} multiverse,https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
+  "mongodb,https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/${MONGODB_VERSION} multiverse,https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
   "hashicorp,https://apt.releases.hashicorp.com ${UBUNTU_RELEASE} main,https://apt.releases.hashicorp.com/gpg"
   "docker,https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable,https://download.docker.com/linux/ubuntu/gpg"
   "postgres,https://apt.postgresql.org/pub/repos/apt ${UBUNTU_RELEASE}-pgdg main,https://www.postgresql.org/media/keys/ACCC4CF8.asc"
   "pgadmin,https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main,https://www.pgadmin.org/static/packages_pgadmin_org.pub"
-  "spotify,http://repository.spotify.com stable non-free,https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg"
   "virtualbox,https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib,https://www.virtualbox.org/download/oracle_vbox_2016.asc"
-  "yarn,https://dl.yarnpkg.com/debian stable main,https://dl.yarnpkg.com/debian/pubkey.gpg"
   "node,https://deb.nodesource.com/node_${NODEJS_VERSION}.x nodistro main,https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key"
-  "lens,https://downloads.k8slens.dev/apt/debian stable main,https://downloads.k8slens.dev/keys/gpg"
-)
+  )
 
 CUSTOM_APT_PACKAGES=(spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools docker-compose terraform
-                     azure-cli helm kubectl google-cloud-sdk powershell dotnet-sdk-6.0 mongodb-mongosh google-chrome-stable yarn gh lens
-                     aztfexport aztfy virtualbox-7.0 vlt)
+                     azure-cli helm kubectl google-cloud-sdk "dotnet-sdk-${DOTNET_VERSION}" mongodb-mongosh google-chrome-stable yarn gh
+                     lens aztfexport aztfy virtualbox-7.1 vlt vagrant)
 
 FLATPAKS=(
   com.github.IsmaelMartinez.teams_for_linux
@@ -55,15 +59,6 @@ FLATPAKS=(
   com.slack.Slack
   com.getpostman.Postman
   com.microsoft.AzureStorageExplorer
-)
-
-ANSIBLE_COLLECTIONS=(
-  ansible.posix
-  community.docker
-  community.general
-  amazon.aws
-  openstack.cloud
-  azure.azcollection
 )
 
 HELM_REPOSITORIES=(
@@ -77,14 +72,25 @@ HELM_REPOSITORIES=(
   "jetstack,https://charts.jetstack.io"
   "secrets-store-csi-driver,https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts"
   "aws-secrets-manager,https://aws.github.io/secrets-store-csi-driver-provider-aws"
+  "matheusfm,https://matheusfm.dev/charts"
+  "traefik,https://traefik.github.io/charts"
+  "haproxytech,https://haproxytech.github.io/helm-charts"
+  "longhorn,https://charts.longhorn.io"
+  "coredns,https://coredns.github.io/helm"
+  "metrics-server,https://kubernetes-sigs.github.io/metrics-server/"
 )
 
 HELM_PLUGINS=(
- https://github.com/helm-unittest/helm-unittest
- https://github.com/chartmuseum/helm-push
+  https://github.com/helm-unittest/helm-unittest
+  https://github.com/chartmuseum/helm-push
+  https://github.com/databus23/helm-diff
 )
 
-NPM_PACKAGES=(@vercel/ncc typescript release-please)
+NPM_PACKAGES=(
+  @vercel/ncc
+  typescript
+  release-please
+)
 
 GIT_CONFIGURATION_OPTIONS=(
   "core.editor,vim"
@@ -94,8 +100,12 @@ GIT_CONFIGURATION_OPTIONS=(
   "init.defaultBranch,main"
 )
 
-### Installation #############################################################################################
-if ${INSTALL}; then
+COMMAND_COMPLETION=(eksctl kubectl kind tilt helm)
+
+GROUP_MEMBERSHIPS=(dialout docker kvm vboxusers)
+
+### SOFTWARE  #############################################################################################
+if ${SOFTWARE}; then
 
   # APT Packages ######################
   sudo add-apt-repository -y ppa:git-core/ppa
@@ -103,11 +113,13 @@ if ${INSTALL}; then
   sudo apt-get install -y "${APT_PACKAGES[@]}"
 
   # Python packages ###################
-  sudo pip3 install --disable-pip-version-check --no-warn-conflicts --upgrade pipenv "${PYTHON_PACKAGES[@]}"
+  for P in "${PYTHON_PACKAGES[@]}"; do
+    pipx install --quiet --include-deps "${P}"
+  done
 
   # DEB packages ######################
   for P in "${DEB_PACKAGES[@]}"; do
-    ansible -i <(echo "{}") -b -o -m apt -a "deb=${P}" localhost
+    ansible -i <(echo "{}") -b -m apt -a "deb=${P}" localhost
   done
 
   # APT Repositories ##################
@@ -156,6 +168,9 @@ if ${INSTALL}; then
   # Azure Kubelogin ###################
   wget -q https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip -O - | sudo busybox unzip -jo - bin/linux_amd64/kubelogin -d /usr/local/bin  && sudo chmod +x /usr/local/bin/kubelogin
 
+  # Azure Developer CLI ###############
+  curl -fsSL https://aka.ms/install-azd.sh | sudo bash
+
   # Terragrunt ########################
   sudo wget -qO /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/latest/download/terragrunt_linux_386 && sudo chmod -v +x /usr/local/bin/terragrunt
 
@@ -180,8 +195,12 @@ if ${INSTALL}; then
   # hcl2json ##########################
   sudo wget -qO /usr/local/bin/hcl2json https://github.com/tmccombs/hcl2json/releases/latest/download/hcl2json_linux_amd64 && sudo chmod -v +x /usr/local/bin/hcl2json
 
+  # longhornctl #######################
+  sudo wget -qO /usr/local/bin/longhornctl https://github.com/longhorn/cli/releases/download/v1.10.1/longhornctl-linux-amd64  && sudo chmod -v +x /usr/local/bin/longhornctl
+
   # Upgrade installed packages
   sudo apt-get upgrade -y
+  pipx upgrade-all --quiet
 
   # Clean up ##########################
   sudo apt-get clean
@@ -192,15 +211,14 @@ fi
 ### Configuration ################################################################################################
 if ${CONFIGURE}; then
 
+  # Set system clock to use local time
+  sudo timedatectl set-local-rtc 1
+
   # Passwordless sudo #################
   echo "${USER} ALL=(ALL) NOPASSWD:ALL" | sudo tee "/etc/sudoers.d/${USER}"
 
   # System ############################
   sudo update-alternatives --set editor /usr/bin/vim.basic
-
-  # Docker ############################
-  sudo groupadd -f docker
-  sudo usermod -aG docker "${USER}"
 
   # GIT ###############################
   for O in "${GIT_CONFIGURATION_OPTIONS[@]}"; do git config --global "$(echo "${O}" | cut -d, -f1)" "$(echo "${O}" | cut -d, -f2)"; done
@@ -212,14 +230,28 @@ if ${CONFIGURE}; then
   az config set --only-show-errors extension.use_dynamic_install=yes_without_prompt
 
   # Environment #######################
-  grep -qxF 'export GTK_IM_MODULE=cedilla' /etc/environment || echo 'export GTK_IM_MODULE=cedilla' >> /etc/environment
+  grep -qxF 'export GTK_IM_MODULE=cedilla' /etc/environment || echo 'export GTK_IM_MODULE=cedilla' | sudo tee -a /etc/environment
+  grep -qxF 'QT_QPA_PLATFORMTHEME=qt5ct' /etc/environment || echo 'QT_QPA_PLATFORMTHEME=qt5ct' | sudo tee -a /etc/environment
 
-  # Custom bashrc commands ############
+  # input.rc #######################
+  grep -qxF 'set enable-bracketed-paste Off' "${HOME}/.inputrc" || echo 'set enable-bracketed-paste Off' >> "${HOME}/.inputrc"
+
+  # Command completion
+  for C in "${COMMAND_COMPLETION[@]}"; do
+    ${C} completion bash | sudo tee "/etc/bash_completion.d/${C}" > /dev/null
+  done
+
+  # Group memberships
+  for G in "${GROUP_MEMBERSHIPS[@]}"; do
+    sudo adduser "${USER}" "${G}"
+  done
+
+   # Custom bashrc commands ############
   CUSTOM_BLOCK_HEAD="############################ BEGIN CUSTOM COMMANDS ############################"
   CUSTOM_BLOCK_TAIL="############################# END CUSTOM COMMANDS #############################"
   grep -qxF "${CUSTOM_BLOCK_HEAD}" "${HOME}/.bashrc" || printf "\n\n%s" "${CUSTOM_BLOCK_HEAD}" >> "${HOME}/.bashrc"
   grep -qxF "${CUSTOM_BLOCK_TAIL}" "${HOME}/.bashrc" || printf "\n%s" "${CUSTOM_BLOCK_TAIL}" >> "${HOME}/.bashrc"
-  sed -i -ne "/${CUSTOM_BLOCK_HEAD}/ {p; r "<(cat <<- 'EOF'
+  sed -i -ne "/${CUSTOM_BLOCK_HEAD}/ {p; r "<(cat <<-'EOF'
 
 		# Pyenv
 		export PYENV_ROOT="$HOME/.pyenv"
@@ -230,13 +262,13 @@ if ${CONFIGURE}; then
 		[[ -f ./Pipfile ]] && pipenv shell
 		[[ -f ./venv/bin/activate ]] && source ./venv/bin/activate
 
+		# pipx
+		eval "$(register-python-argcomplete pipx)"
+		export PATH="$HOME/.local/bin:$PATH"
+
 		# AWS
 		complete -C "$(which aws_completer)" aws
-		source <(eksctl completion bash)
 		alias aws-login='aws sso login --sso-session'
-
-		# Azure
-		source /etc/bash_completion.d/azure-cli
 
 		# Git
 		alias git-init='git init && git add . && git commit -m "chore: first commit"'
@@ -248,7 +280,8 @@ if ${CONFIGURE}; then
 		gh-create-tf-mod () { gh repo create "${1}/terraform-$(pwd | xargs basename)" "--${2}" --source . --push; }
 
 		# Kubeconfig
-		source <(kubectl completion bash)
+		export KUBECONFIG=$(for i in $(find ${HOME}/.kube -maxdepth 1 -iname 'config*') ; do echo -n ":$i"; done | cut -c 2-)
+		# alias kubectl='kubectl --request-timeout=.3s'
 
 		# Vlt
 		alias vlt-get-tfvars='source .vltrc && vlt secrets get -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" --plaintext tfvars | jq > terraform.tfvars.json'
@@ -265,11 +298,14 @@ if ${CONFIGURE}; then
 		alias tf-reset-gcs-encrypted='tf-reset -backend-config=.encryption_key.gcs.tfbackend'
 		complete -C /usr/bin/terraform terraform
 
+		# Vagrant
+		. /opt/vagrant/embedded/gems/gems/vagrant-2.4.9/contrib/bash/completion.sh
+
 		# Terragrunt
 		alias tg='terragrunt $([[ -e "./terragrunt.hcl" ]] || echo "run-all")'
 		alias tg-unlock='tg force-unlock -force'
 		alias tg-fmt='tg hclfmt'
-    complete -C /usr/bin/terraform terragrunt
+		complete -C /usr/bin/terraform terragrunt
 
 		# Golang
 		export GOPATH="$HOME/.go"
@@ -277,12 +313,6 @@ if ${CONFIGURE}; then
 
 		# Lua
 		export PATH="$HOME/.luarocks/bin:$PATH"
-
-		# Kind
-		source <(kind completion bash)
-
-		# Tilt
-		source <(tilt completion bash)
 
 		# Rust
 		. "$HOME/.cargo/env"
