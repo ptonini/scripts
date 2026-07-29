@@ -1,0 +1,50 @@
+#!/bin/bash
+
+ROOT="/home/ptonini/NFS/media/musicas_01"
+OTHER_AUDIO_EXTENSIONS="flac|wav|aac|ogg|m4a|wma|opus|ape|alac|aiff|wv"
+
+declare -A FOLDERS_MP3
+declare -A FOLDERS_OTHER
+
+while IFS= read -r f; do
+  DIR=$(dirname "$f")
+  if echo "$f" | grep -qiE "\.mp3$"; then
+    FOLDERS_MP3[$DIR]=1
+  elif echo "$f" | grep -qiE "\.($OTHER_AUDIO_EXTENSIONS)$"; then
+    FOLDERS_OTHER[$DIR]=1
+  fi
+done < <(find "$ROOT" -mindepth 2 -maxdepth 3 -type f)
+
+mapfile -t MIXED_FOLDERS < <(for dir in "${!FOLDERS_MP3[@]}"; do
+  [[ -n "${FOLDERS_OTHER[$dir]}" ]] && echo "$dir"
+done | sort)
+
+if [[ ${#MIXED_FOLDERS[@]} -eq 0 ]]; then
+  echo "No folders with mixed audio formats found."
+  exit 0
+fi
+
+echo "Folders containing MP3 and other audio files:"
+echo ""
+
+declare -a ALL_MP3S
+for DIR in "${MIXED_FOLDERS[@]}"; do
+  mapfile -t DIR_MP3S < <(find "$DIR" -maxdepth 1 -type f -iname "*.mp3")
+  mapfile -t DIR_OTHERS < <(find "$DIR" -maxdepth 1 -type f | grep -iE "\.($OTHER_AUDIO_EXTENSIONS)$")
+  echo "  $DIR"
+  echo "    MP3 files   : ${#DIR_MP3S[@]}"
+  echo "    Other audio : ${#DIR_OTHERS[@]}"
+  ALL_MP3S+=("${DIR_MP3S[@]}")
+done
+echo ""
+
+read -rp "Delete all ${#ALL_MP3S[@]} MP3 file(s) from these folders? [y/N] " CONFIRM
+if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
+  for f in "${ALL_MP3S[@]}"; do
+    rm -f "$f"
+    echo "Deleted: $f"
+  done
+  echo "Done."
+else
+  echo "Aborted."
+fi

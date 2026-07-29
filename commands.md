@@ -52,3 +52,8 @@ for DS in $(jq -r .data_streams[].name streams.json); do echo "POST /$DS/_rollov
 ```bash
 for R in ./*; do (cd $R && helm dep up); done
 ```
+
+#### Direciona dominios locais para a interface local
+```bash
+sudo resolvectl domain enp8s0 ~home ~k3s-lab
+```

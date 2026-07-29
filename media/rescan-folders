@@ -1,0 +1,6 @@
+#!/bin/bash
+
+curl -X POST https://lidarr.home/api/v1/command \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: a0f18f4704274a9ca49629d3de32cef3" \
+  -d '{"name":"RescanFolders"}'

@@ -1,0 +1,40 @@
+#!/bin/bash
+
+ROOT="/home/ptonini/NFS/media/musicas_01"
+AUDIO_EXTENSIONS="mp3|flac|wav|aac|ogg|m4a|wma|opus|ape|alac|aiff|wv"
+
+mapfile -t AUDIO_FILES < <(find "$ROOT" -type f | grep -iE "\.($AUDIO_EXTENSIONS)$")
+
+TOTAL=${#AUDIO_FILES[@]}
+
+if [[ $TOTAL -eq 0 ]]; then
+  echo "No audio files found."
+  exit 0
+fi
+
+echo "Scanning $TOTAL audio file(s) for corruption..."
+echo ""
+
+SCANNED=0
+CORRUPTED=()
+
+for f in "${AUDIO_FILES[@]}"; do
+  SCANNED=$((SCANNED + 1))
+  PCT=$(awk "BEGIN { printf \"%d\", $SCANNED * 100 / $TOTAL }")
+  printf "\r  Progress: %d / %d (%d%%) | Corrupted: %d" "$SCANNED" "$TOTAL" "$PCT" "${#CORRUPTED[@]}" >&2
+
+  ffprobe -v error -i "$f" 2>&1 | grep -qiE "error|invalid|corrupt" && CORRUPTED+=("$f")
+done
+printf "\r%-80s\r" "" >&2
+
+if [[ ${#CORRUPTED[@]} -eq 0 ]]; then
+  echo "No corrupted audio files found."
+  exit 0
+fi
+
+echo "${#CORRUPTED[@]} corrupted file(s) found:"
+echo ""
+for f in "${CORRUPTED[@]}"; do
+  echo "  $f"
+done
+echo ""

@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+SLSKD_URL="https://slskd.home"
+
+SEARCHES=$(curl -sf "${SLSKD_URL}/api/v0/searches" | jq -r '.[].id')
+
+total=0
+deleted=0
+
+for ID in $SEARCHES; do
+  total=$((total + 1))
+  curl -f -X DELETE "${SLSKD_URL}/api/v0/searches/${ID}"
+  deleted=$((deleted + 1))
+  echo "[$deleted] Deleted: $ID"
+done
+
+echo ""
+echo "Done: $deleted/$total searches deleted."

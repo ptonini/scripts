@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+LIDARR_URL="https://lidarr.home"
+LIDARR_API_KEY="a0f18f4704274a9ca49629d3de32cef3"
+ARTIST_FILTER="${1:-}"
+
+AUTH=()
+
+PAGE=1
+PAGE_SIZE=100
+TOTAL_FOUND=0
+declare -a RESULTS=()
+
+while true; do
+  RESPONSE=$(curl -sf -H "X-Api-Key: $LIDARR_API_KEY" "${LIDARR_URL%/}/api/v1/wanted/missing?page=${PAGE}&pageSize=${PAGE_SIZE}")
+  RECORDS=$(echo "$RESPONSE" | jq -r '.records | length')
+  TOTAL=$(echo "$RESPONSE" | jq -r '.totalRecords')
+  if [[ "$RECORDS" -eq 0 ]]; then
+    break
+  fi
+
+  while IFS=$'\t' read -r ARTIST RELEASE_DATE ALBUM; do
+    printf "%-40s%s\t%s\n" "$ARTIST" "$(date -ud "$RELEASE_DATE" "+%Y")" "$ALBUM"
+    RESULTS+=("$ARTIST	$ALBUM")
+  done < <(echo "$RESPONSE" | jq -r '.records[] | [.artist.artistName, .releaseDate, .title] | @tsv')
+
+  TOTAL_FOUND=$(( TOTAL_FOUND + RECORDS ))
+  [[ "$TOTAL_FOUND" -ge "$TOTAL" ]] && break
+  (( PAGE++ ))
+done

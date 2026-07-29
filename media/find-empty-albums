@@ -1,0 +1,38 @@
+#!/bin/bash
+
+ROOT="/home/ptonini/NFS/media/musicas_01"
+AUDIO_EXTENSIONS="mp3|flac|wav|aac|ogg|m4a|wma|opus|ape|alac|aiff"
+
+mapfile -t EMPTY_FOLDERS < <(
+  find "$ROOT" -mindepth 2 -maxdepth 2 -type d | while read -r dir; do
+    if ! find "$dir" -maxdepth 1 -type f | grep -qiE "\.($AUDIO_EXTENSIONS)$"; then
+      echo "$dir"
+    fi
+  done
+)
+
+if [[ ${#EMPTY_FOLDERS[@]} -eq 0 ]]; then
+  echo "No folders without audio files found."
+  exit 0
+fiy
+
+echo "The following 2nd-level folders contain no audio files:"
+echo ""
+for dir in "${EMPTY_FOLDERS[@]}"; do
+  echo "  $dir"
+  find "$dir" -maxdepth 1 -type f | head -10 | while read -r f; do
+    echo "    - $(basename "$f")"
+  done
+done
+echo ""
+
+read -rp "Delete all ${#EMPTY_FOLDERS[@]} folder(s)? [y/N] " CONFIRM
+if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
+  for dir in "${EMPTY_FOLDERS[@]}"; do
+    rm -rf "$dir"
+    echo "Deleted: $dir"
+  done
+  echo "Done."
+else
+  echo "Aborted."
+fi

@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Periodically plays an audio file at very low volume on the main audio output.
+# Requires: paplay (PulseAudio)
+#
+# Usage: periodic-audio-ping [OPTIONS] <audio-file>
+#
+# Options:
+#   -i <seconds>   Interval between plays (default: 3600)
+#   -v <0-100>     Volume percentage (default: 5)
+#   -l <count>     Times to loop audio per play, 0=infinite (default: 1)
+#   -h             Show this help
+
+PA_VOLUME=1
+AUDIO_FILE="$1"
+
+if [[ -z "$AUDIO_FILE" ]]; then
+  echo "Error: audio file is required." >&2
+  exit 1
+fi
+
+if [[ ! -f "$AUDIO_FILE" ]]; then
+  echo "Error: file not found: $AUDIO_FILE" >&2
+  exit 1
+fi
+
+ffplay -nodisp -loop 0 -volume "$PA_VOLUME" "$AUDIO_FILE"
+
+

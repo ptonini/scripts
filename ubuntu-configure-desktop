@@ -9,22 +9,29 @@ source /etc/upstream-release/lsb-release
 UBUNTU_RELEASE=$DISTRIB_CODENAME
 UBUNTU_VERSION=$DISTRIB_RELEASE
 MONGODB_VERSION=7.0
-NODEJS_VERSION=21
+NODEJS_VERSION=22
 DOTNET_VERSION=8.0
 KUBERNETES_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt | awk -F. '{ print $1 "." $2 }')
+HEADLAMP_VERSION=$(curl -L -s https://api.github.com/repos/kubernetes-sigs/headlamp/releases/latest | jq -r .tag_name | sed 's/^v//')
 
-APT_PACKAGES=(curl vim jq nmap flameshot cheese git cpu-x flatpak remmina-* python3-pip pipx golang-go lua5.1 luarocks chntpw
-              build-essential apt-transport-https libsqlite3-dev liblzma-dev gnupg2 openssh-server golang-src make putty-tools
-              libbz2-dev python3-gi python3-gi-cairo smartmontools lsb-release gnupg-agent libreadline-dev ncdu bash-completion
-              libssl-dev zlib1g-dev gir1.2-gtk-3.0 libffi-dev libgdk-pixbuf2.0-0 dconf-editor software-properties-common csvkit
-              qemu-kvm libvirt-daemon-system libvirt-clients virt-manager bridge-utils arduino libpam-kwallet5 kwalletmanager
-)
+APT_PACKAGES=(curl flameshot ncdu flatpak arduino csvkit golang-go lua5.1 luarocks chntpw qemu-kvm make kwalletmanager cheese
+              build-essential apt-transport-https git libsqlite3-dev liblzma-dev gnupg2 openssh-server golang-src putty-tools
+              libbz2-dev python3-gi python3-gi-cairo smartmontools lsb-release gnupg-agent libreadline-dev bash-completion jq
+              libssl-dev zlib1g-dev gir1.2-gtk-3.0 libffi-dev libgdk-pixbuf2.0-0 dconf-editor software-properties-common pipx
+              remmina-* libvirt-daemon-system libvirt-clients virt-manager bridge-utils python3-pip libpam-kwallet5 vim cpu-x
+              nmap)
 
-PYTHON_PACKAGES=(pipenv ansible openstacksdk checkov yq)
+UNWANTED_APT_PACKAGES=(nano)
+
+PYTHON_PACKAGES=(pipenv ansible checkov yq)
+
+ANSIBLE_PACKAGES=(kubernetes passlib openstacksdk python-dotenv)
+
+ANSIBLE_COLLECTIONS=()
 
 DEB_PACKAGES=(
   "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
-  "https://launchpadlibrarian.net/570407966/grub-customizer_5.1.0-3build1_amd64.deb"
+  "https://github.com/kubernetes-sigs/headlamp/releases/download/v${HEADLAMP_VERSION}/headlamp_${HEADLAMP_VERSION}-1_amd64.deb"
 )
 
 CUSTOM_APT_REPOSITORIES=(
@@ -32,9 +39,7 @@ CUSTOM_APT_REPOSITORIES=(
   "google-cloud-k8s,https://packages.cloud.google.com/apt cloud-sdk main,https://packages.cloud.google.com/apt/doc/apt-key.gpg"
   "github-cli,https://cli.github.com/packages stable main,https://cli.github.com/packages/githubcli-archive-keyring.gpg"
   "helm,https://packages.buildkite.com/helm-linux/helm-debian/any/ any main,https://packages.buildkite.com/helm-linux/helm-debian/gpgkey"
-  "spotify,http://repository.spotify.com stable non-free,https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg"
-  "yarn,https://dl.yarnpkg.com/debian stable main,https://dl.yarnpkg.com/debian/pubkey.gpg"
-  "lens,https://downloads.k8slens.dev/apt/debian stable main,https://downloads.k8slens.dev/keys/gpg"
+  "spotify,http://repository.spotify.com stable non-free,https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc"
   "azure,https://packages.microsoft.com/repos/azure-cli/ ${UBUNTU_RELEASE} main,https://packages.microsoft.com/keys/microsoft.asc"
   "kubernetes,https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/ /,https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key"
   "mongodb,https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/${MONGODB_VERSION} multiverse,https://www.mongodb.org/static/pgp/server-${MONGODB_VERSION}.asc"
@@ -44,21 +49,30 @@ CUSTOM_APT_REPOSITORIES=(
   "pgadmin,https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${UBUNTU_RELEASE} pgadmin4 main,https://www.pgadmin.org/static/packages_pgadmin_org.pub"
   "virtualbox,https://download.virtualbox.org/virtualbox/debian ${UBUNTU_RELEASE} contrib,https://www.virtualbox.org/download/oracle_vbox_2016.asc"
   "node,https://deb.nodesource.com/node_${NODEJS_VERSION}.x nodistro main,https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key"
-  )
+  "nvidia-container,https://nvidia.github.io/libnvidia-container/stable/deb/\$(ARCH) /,https://nvidia.github.io/libnvidia-container/gpgkey"
+  "grub-customizer,https://ppa.launchpadcontent.net/danielrichter2007/grub-customizer/ubuntu ${UBUNTU_RELEASE} main,https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x7EDB2B9AEE0757D787DFFC2014BEBC7363BDC51E"
+)
 
-CUSTOM_APT_PACKAGES=(spotify-client vault pgadmin4 postgresql-client-12 docker-ce nodejs mongodb-database-tools docker-compose terraform
-                     azure-cli helm kubectl google-cloud-sdk "dotnet-sdk-${DOTNET_VERSION}" mongodb-mongosh google-chrome-stable yarn gh
-                     lens aztfexport aztfy virtualbox-7.2 vlt vagrant)
+DEB822_APT_REPOSITORIES=(
+  "freelens,https://raw.githubusercontent.com/freelensapp/freelens/refs/heads/main/freelens/build/apt/freelens.sources,https://raw.githubusercontent.com/freelensapp/freelens/refs/heads/main/freelens/build/apt/freelens.asc"
+)
+
+CUSTOM_APT_PACKAGES=(spotify-client vault pgadmin4 postgresql-client docker-ce nodejs mongodb-database-tools docker-compose terraform
+                     azure-cli helm kubectl google-cloud-sdk "dotnet-sdk-${DOTNET_VERSION}" mongodb-mongosh google-chrome-stable yarn
+                     virtualbox-7.2 vlt vagrant gh nvidia-container-toolkit freelens grub-customizer)
 
 FLATPAKS=(
-  com.github.IsmaelMartinez.teams_for_linux
-  com.rtosta.zapzap
   com.bitwarden.desktop
-  com.mongodb.Compass
-  org.torproject.torbrowser-launcher
-  com.slack.Slack
   com.getpostman.Postman
+  com.github.Flacon
+  com.github.IsmaelMartinez.teams_for_linux
   com.microsoft.AzureStorageExplorer
+  com.mongodb.Compass
+  com.plexamp.Plexamp
+  com.slack.Slack
+  io.github.tobagin.Ntfyr
+  org.torproject.torbrowser-launcher
+  tv.plex.PlexDesktop
 )
 
 HELM_REPOSITORIES=(
@@ -78,18 +92,21 @@ HELM_REPOSITORIES=(
   "longhorn,https://charts.longhorn.io"
   "coredns,https://coredns.github.io/helm"
   "metrics-server,https://kubernetes-sigs.github.io/metrics-server/"
+  "cnpg,https://cloudnative-pg.github.io/charts"
+  "cert-manager,https://charts.jetstack.io"
 )
+
 
 HELM_PLUGINS=(
   https://github.com/helm-unittest/helm-unittest
   https://github.com/chartmuseum/helm-push
-  https://github.com/databus23/helm-diff
 )
 
 NPM_PACKAGES=(
   @vercel/ncc
   typescript
   release-please
+  corepack
 )
 
 GIT_CONFIGURATION_OPTIONS=(
@@ -108,19 +125,20 @@ GROUP_MEMBERSHIPS=(dialout docker kvm vboxusers)
 if ${SOFTWARE}; then
 
   # APT Packages ######################
-  sudo add-apt-repository -y ppa:git-core/ppa
+
   sudo add-apt-repository -y universe
   sudo apt-get install -y "${APT_PACKAGES[@]}"
+  sudo apt-get purge -y "${UNWANTED_APT_PACKAGES[@]}"
 
   # Python packages ###################
-  for P in "${PYTHON_PACKAGES[@]}"; do
-    pipx install --quiet --include-deps "${P}"
-  done
+  for P in "${PYTHON_PACKAGES[@]}"; do pipx install --quiet --include-deps "${P}"; done
+  export PATH="$HOME/.local/bin:$PATH"
+
+  # Python packages ###################
+  for P in "${ANSIBLE_PACKAGES[@]}"; do pipx inject ansible --quiet "${P}"; done
 
   # DEB packages ######################
-  for P in "${DEB_PACKAGES[@]}"; do
-    ansible -i <(echo "{}") -b -m apt -a "deb=${P}" localhost
-  done
+  for P in "${DEB_PACKAGES[@]}"; do ansible -i <(echo "{}") -b -m apt -a "deb=${P}" localhost || true; done
 
   # APT Repositories ##################
   for R in "${CUSTOM_APT_REPOSITORIES[@]}"; do
@@ -128,6 +146,15 @@ if ${SOFTWARE}; then
     curl -fsSL "$(echo "${R}"| cut -d, -f3)" | gpg --dearmor | sudo tee "${KEY}" > /dev/null
     echo "deb [arch=amd64 signed-by=${KEY}] $(echo "${R}"| cut -d, -f2)" | sudo tee "/etc/apt/sources.list.d/$(echo "${R}"| cut -d, -f1).list"
   done
+
+  # DEB822 APT Repositories ############
+  sudo install -d -m 0755 /etc/apt/keyrings
+  for R in "${DEB822_APT_REPOSITORIES[@]}"; do
+    NAME=$(echo "${R}" | cut -d, -f1)
+    curl -fsSL "$(echo "${R}" | cut -d, -f3)" | sudo tee "/etc/apt/keyrings/${NAME}.asc" > /dev/null
+    curl -fsSL "$(echo "${R}" | cut -d, -f2)" | sudo tee "/etc/apt/sources.list.d/${NAME}.sources" > /dev/null
+  done
+  sudo apt update
   sudo apt-get install -y "${CUSTOM_APT_PACKAGES[@]}"
 
   # NodeJS Packages ###################
@@ -135,7 +162,9 @@ if ${SOFTWARE}; then
   sudo npm update -g
 
   # Ansible Galaxy ####################
-  for U in "${ANSIBLE_COLLECTIONS[@]}"; do ansible-galaxy collection install --upgrade "${U}"; done
+  if [[ ${#ANSIBLE_COLLECTIONS[@]} -gt 0 ]]; then
+    for U in "${ANSIBLE_COLLECTIONS[@]}"; do ansible-galaxy collection install --upgrade "${U}"; done
+  fi
 
   # Flatpaks ##########################
   sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -146,23 +175,22 @@ if ${SOFTWARE}; then
   helm repo update || true
 
   # Helm plugins ######################
-  for P in "${HELM_PLUGINS[@]}"; do
-    helm plugin install "${P}" || true
-  done
+  for P in "${HELM_PLUGINS[@]}"; do helm plugin install "${P}" || true; done
 
 
-  # Calibre ###########################
+  # Calibre ###########################-+
   wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
 
   # ZeroTier ##########################
   curl -fsSL https://install.zerotier.com | sudo bash || true
 
   # Rust ##############################
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh /dev/stdin -y
+  curl -fsSL https://sh.rustup.rs | sh /dev/stdin -y
 
   # Pyenv #############################
   "${HOME}/.pyenv/bin/pyenv" update || curl -fsSL https://pyenv.run | bash
 
+  # Tilt ##############################
   curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
   # Azure Developer CLI ###############
@@ -208,7 +236,6 @@ if ${SOFTWARE}; then
   # Clean up ##########################
   sudo apt-get clean
   sudo apt-get -y autoremove
-
 fi
 
 ### Configuration ################################################################################################
@@ -240,14 +267,10 @@ if ${CONFIGURE}; then
   grep -qxF 'set enable-bracketed-paste Off' "${HOME}/.inputrc" || echo 'set enable-bracketed-paste Off' >> "${HOME}/.inputrc"
 
   # Command completion
-  for C in "${COMMAND_COMPLETION[@]}"; do
-    ${C} completion bash | sudo tee "/etc/bash_completion.d/${C}" > /dev/null
-  done
+  for C in "${COMMAND_COMPLETION[@]}"; do ${C} completion bash | sudo tee "/etc/bash_completion.d/${C}" > /dev/null; done
 
   # Group memberships
-  for G in "${GROUP_MEMBERSHIPS[@]}"; do
-    sudo adduser "${USER}" "${G}"
-  done
+  for G in "${GROUP_MEMBERSHIPS[@]}"; do sudo adduser "${USER}" "${G}"; done
 
    # Custom bashrc commands ############
   CUSTOM_BLOCK_HEAD="############################ BEGIN CUSTOM COMMANDS ############################"
@@ -284,7 +307,6 @@ if ${CONFIGURE}; then
 
 		# Kubeconfig
 		export KUBECONFIG=$(for i in $(find ${HOME}/.kube -maxdepth 1 -iname 'config*') ; do echo -n ":$i"; done | cut -c 2-)
-		# alias kubectl='kubectl --request-timeout=.3s'
 
 		# Vlt
 		alias vlt-get-tfvars='source .vltrc && vlt secrets get -o "${ORGANIZATION}" -p "${PROJECT}" -a "${APP_NAME}" --plaintext tfvars | jq > terraform.tfvars.json'
@@ -295,6 +317,7 @@ if ${CONFIGURE}; then
 		alias tf-fmt='tf fmt -recursive'
 		alias tf-unlock='tf force-unlock -force'
 		alias tf-apply='tf apply plan && rm -f plan'
+		alias tf-auto-apply='tf apply -auto-approve'
 		alias tf-plan-refresh='tf-fmt && tf get && tf plan -parallelism=50 -out=plan'
 		alias tf-plan='tf-plan-refresh -refresh=false'
 		alias tf-reset='rm -vrf .terraform && tf init'
@@ -321,7 +344,11 @@ if ${CONFIGURE}; then
 		. "$HOME/.cargo/env"
 
 		# Jetbrains Toolbox
+
 		export PATH="$HOME/.local/share/JetBrains/Toolbox/scripts:$PATH"
+
+    # Krew
+    export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
 	EOF
 	) -e ":a; n; /${CUSTOM_BLOCK_TAIL}/ {p; b}; ba}; p" "${HOME}/.bashrc"

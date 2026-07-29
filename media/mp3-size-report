@@ -1,0 +1,89 @@
+#!/bin/bash
+
+ROOT="/home/ptonini/NFS/media/musicas_01"
+
+mapfile -t MP3_FILES < <(find "$ROOT" -type f -iname "*.mp3")
+
+COUNT=${#MP3_FILES[@]}
+
+if [[ $COUNT -eq 0 ]]; then
+  echo "No MP3 files found."
+  exit 0
+fi
+
+TOTAL_BYTES=0
+declare -A ARTIST_BYTES
+declare -A ARTIST_COUNT
+declare -A ALBUM_BYTES
+declare -A ALBUM_COUNT
+declare -A ALBUM_BITRATE_SUM
+declare -A ALBUM_BITRATE_N
+
+for f in "${MP3_FILES[@]}"; do
+  SIZE=$(stat -c%s "$f")
+  TOTAL_BYTES=$((TOTAL_BYTES + SIZE))
+
+  RELATIVE="${f#$ROOT/}"
+  ARTIST=$(echo "$RELATIVE" | cut -d'/' -f1)
+  ALBUM=$(echo "$RELATIVE" | cut -d'/' -f1-2)
+
+  ARTIST_BYTES[$ARTIST]=$(( ${ARTIST_BYTES[$ARTIST]:-0} + SIZE ))
+  ARTIST_COUNT[$ARTIST]=$(( ${ARTIST_COUNT[$ARTIST]:-0} + 1 ))
+  ALBUM_BYTES[$ALBUM]=$(( ${ALBUM_BYTES[$ALBUM]:-0} + SIZE ))
+  ALBUM_COUNT[$ALBUM]=$(( ${ALBUM_COUNT[$ALBUM]:-0} + 1 ))
+  ALBUM_BITRATE_SUM[$ALBUM]=$(( ${ALBUM_BITRATE_SUM[$ALBUM]:-0} ))
+  ALBUM_BITRATE_N[$ALBUM]=$(( ${ALBUM_BITRATE_N[$ALBUM]:-0} ))
+done
+
+TOTAL_MB=$(awk "BEGIN { printf \"%.2f\", $TOTAL_BYTES / 1048576 }")
+TOTAL_GB=$(awk "BEGIN { printf \"%.2f\", $TOTAL_BYTES / 1073741824 }")
+
+TOTAL_ARTISTS=${#ARTIST_BYTES[@]}
+TOTAL_ALBUMS=${#ALBUM_BYTES[@]}
+
+echo "Artists found   : $TOTAL_ARTISTS"
+echo "Albums found    : $TOTAL_ALBUMS"
+echo "MP3 files found : $COUNT"
+echo "Total size      : ${TOTAL_MB} MB (${TOTAL_GB} GB)"
+echo ""
+
+read -rp "Show detailed info? [y/N] " CONFIRM
+[[ "$CONFIRM" =~ ^[Yy]$ ]] || exit 0
+
+echo ""
+#echo "Calculating bitrates..."
+#for ALBUM in "${!ALBUM_COUNT[@]}"; do
+#  while IFS= read -r f; do
+#    BR=$(ffprobe -v quiet -show_entries format=bit_rate -of default=noprint_wrappers=1:nokey=1 "$f" 2>/dev/null)
+#    if [[ "$BR" =~ ^[0-9]+$ ]]; then
+#      ALBUM_BITRATE_SUM[$ALBUM]=$(( ${ALBUM_BITRATE_SUM[$ALBUM]} + BR ))
+#      ALBUM_BITRATE_N[$ALBUM]=$(( ${ALBUM_BITRATE_N[$ALBUM]} + 1 ))
+#    fi
+#  done < <(find "$ROOT/$ALBUM" -maxdepth 1 -type f -iname "*.mp3")
+#done
+
+mapfile -t SORTED_ARTISTS < <(for a in "${!ARTIST_BYTES[@]}"; do echo "$a"; done | sort)
+
+for ARTIST in "${SORTED_ARTISTS[@]}"; do
+  A_MB=$(awk "BEGIN { printf \"%.2f\", ${ARTIST_BYTES[$ARTIST]} / 1048576 }")
+  printf "\n  %-50s %5d files  %8s MB\n" "$ARTIST" "${ARTIST_COUNT[$ARTIST]}" "$A_MB"
+
+  mapfile -t SORTED_ALBUMS < <(for alb in "${!ALBUM_BYTES[@]}"; do
+    [[ "$alb" == "$ARTIST/"* ]] && echo "$alb"
+  done | sort)
+
+  for ALBUM in "${SORTED_ALBUMS[@]}"; do
+    ALBUM_NAME="${ALBUM#$ARTIST/}"
+    ALB_MB=$(awk "BEGIN { printf \"%.2f\", ${ALBUM_BYTES[$ALBUM]} / 1048576 }")
+    N=${ALBUM_BITRATE_N[$ALBUM]:-0}
+    if [[ $N -gt 0 ]]; then
+      AVG_KBPS=$(awk "BEGIN { printf \"%d\", ${ALBUM_BITRATE_SUM[$ALBUM]} / $N / 1000 }")
+      BITRATE_STR="${AVG_KBPS} kbps"
+    else
+      BITRATE_STR="N/A"
+    fi
+    printf "    %-48s %5d files  %8s MB  %s\n" "$ALBUM_NAME" "${ALBUM_COUNT[$ALBUM]}" "$ALB_MB" "$BITRATE_STR"
+  done
+done
+
+echo ""

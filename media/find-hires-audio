@@ -1,0 +1,73 @@
+#!/bin/bash
+
+ROOT="/home/ptonini/NFS/media/musicas_01"
+DEST="/home/ptonini/NFS/media/musicas_24bit"
+
+LOSSLESS_EXTENSIONS="flac|wav|alac|aiff|ape|wv"
+
+mapfile -t LOSSLESS_DIRS < <(
+  find "$ROOT" -type f \( -iname "*.flac" -o -iname "*.wav" -o -iname "*.alac" -o -iname "*.aiff" -o -iname "*.ape" -o -iname "*.wv" \) -printf '%h\n' | sort -u
+)
+
+if [[ ${#LOSSLESS_DIRS[@]} -eq 0 ]]; then
+  echo "No folders with lossless audio files found."
+  exit 0
+fi
+
+echo "Scanning ${#LOSSLESS_DIRS[@]} folder(s) for 24-bit files..."
+echo ""
+
+FOUND=0
+SCANNED=0
+TOTAL=${#LOSSLESS_DIRS[@]}
+MATCHED_DIRS=()
+for dir in "${LOSSLESS_DIRS[@]}"; do
+  SCANNED=$((SCANNED + 1))
+  PCT=$(awk "BEGIN { printf \"%d\", $SCANNED * 100 / $TOTAL }")
+  printf "\r  Progress: %d / %d (%d%%) | Found: %d" "$SCANNED" "$TOTAL" "$PCT" "$FOUND" >&2
+
+  IS_24BIT=false
+  while IFS= read -r f; do
+    BIT_DEPTH=$(ffprobe -v error -select_streams a:0 \
+      -show_entries stream=bits_per_raw_sample \
+      -of default=noprint_wrappers=1:nokey=1 "$f" 2>/dev/null)
+    if [[ "$BIT_DEPTH" == "24" ]]; then
+      IS_24BIT=true
+    fi
+    break
+  done < <(find "$dir" -maxdepth 1 -type f | grep -iE "\.($LOSSLESS_EXTENSIONS)$")
+
+  if $IS_24BIT; then
+    MATCHED_DIRS+=("$dir")
+    FOUND=$((FOUND + 1))
+  fi
+done
+printf "\r%-70s\r" "" >&2
+
+echo ""
+for dir in "${MATCHED_DIRS[@]}"; do
+  echo "  $dir"
+done
+echo ""
+echo "$FOUND 24-bit folder(s) found out of $TOTAL lossless folder(s) scanned."
+
+if [[ $FOUND -eq 0 ]]; then
+  exit 0
+fi
+
+echo ""
+read -rp "Move all $FOUND folder(s) to a new destination? [y/N] " CONFIRM
+if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+  echo "Aborted."
+  exit 0
+fi
+
+mkdir -p "$DEST" || { echo "Failed to create destination: $DEST"; exit 1; }
+
+for dir in "${MATCHED_DIRS[@]}"; do
+  PARENT=$(basename "$(dirname "$dir")")
+  mkdir -p "$DEST/$PARENT"
+  mv -v "$dir" "$DEST/$PARENT/"
+
+done
+echo "Done."

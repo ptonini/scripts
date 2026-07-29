@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+SLSKD_URL="https://slskd.home"
+
+PATTERNS_FILE="missing_albuns"
+
+if [[ -z "$PATTERNS_FILE" ]]; then
+  echo "Error: patterns file is required." >&2
+  usage
+fi
+
+if [[ ! -f "$PATTERNS_FILE" ]]; then
+  echo "Error: file not found: $PATTERNS_FILE" >&2
+  exit 1
+fi
+
+total=0
+submitted=0
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+
+  # Skip empty lines and comments
+  [[ -z "$line" || "$line" == \#* ]] && continue
+
+  total=$((total + 1))
+  query=$(echo "$line" | tr -s '[:blank:]' ' ' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+
+  RESPONSE=$(curl -sf -X POST "${SLSKD_URL}/api/v0/searches" -H "Content-Type: application/json" -d "{\"searchText\": \"$query\"}")
+  ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+  submitted=$((submitted + 1))
+  echo "[$submitted] Submitted: $query  (id: $ID)"
+
+done < "$PATTERNS_FILE"
+
+echo ""
+echo "Done: $submitted/$total searches submitted."
