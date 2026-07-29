@@ -77,8 +77,9 @@ if [[ -f "$CA_DEST" ]]; then
   skip "home-ca.crt already installed"
 else
   echo "  Copying from hal9000..."
+  scp "$HAL9000:/usr/local/share/ca-certificates/home-ca.crt" /tmp/home-ca.crt
   sudo mkdir -p /usr/local/share/ca-certificates
-  sudo scp "$HAL9000:/usr/local/share/ca-certificates/home-ca.crt" "$CA_DEST"
+  sudo mv /tmp/home-ca.crt "$CA_DEST"
   sudo update-ca-certificates
   ok "home-ca.crt installed"
 fi
@@ -87,14 +88,16 @@ fi
 # 3. SSH key
 ###############################################################################
 header "=== 3. SSH key ==="
-if [[ -f ~/.ssh/id_rsa && -f ~/.ssh/id_rsa.pub ]]; then
-  FINGERPRINT=$(ssh-keygen -lf ~/.ssh/id_rsa.pub 2>/dev/null | awk '{print $2}')
-  skip "~/.ssh/id_rsa exists ($FINGERPRINT)"
+# Detect any existing private key (id_ed25519, id_rsa, id_ecdsa)
+EXISTING_KEY=$(ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null | head -1)
+if [[ -n "$EXISTING_KEY" ]]; then
+  FINGERPRINT=$(ssh-keygen -lf "${EXISTING_KEY}.pub" 2>/dev/null | awk '{print $2}')
+  skip "SSH key exists: $EXISTING_KEY ($FINGERPRINT)"
 else
   mkdir -p ~/.ssh && chmod 700 ~/.ssh
-  echo "  No ~/.ssh/id_rsa found."
-  echo "  [1] Copy keypair from hal9000 (same GitHub/node access immediately)"
-  echo "  [2] Generate a new key (must register in GitHub and redeploy to nodes)"
+  echo "  No SSH key found."
+  echo "  [1] Copy id_rsa keypair from hal9000 (same GitHub/node access immediately)"
+  echo "  [2] Generate a new ed25519 key (must register in GitHub and redeploy to nodes)"
   read -rp "  Choice [1/2]: " KEY_CHOICE
   case "$KEY_CHOICE" in
     1)
@@ -104,10 +107,10 @@ else
       ok "SSH keypair copied from hal9000"
       ;;
     2)
-      ssh-keygen -t rsa -b 3072 -f ~/.ssh/id_rsa -N ""
+      ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
       echo "  Public key:"
-      cat ~/.ssh/id_rsa.pub
-      manual "SSH key: register in GitHub with: gh ssh-key add ~/.ssh/id_rsa.pub --title \"$(hostname)\""
+      cat ~/.ssh/id_ed25519.pub
+      manual "SSH key: register in GitHub with: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$(hostname)\""
       ;;
     *)
       fail "Invalid choice — skipping SSH key"
