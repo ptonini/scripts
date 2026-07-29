@@ -1,0 +1,197 @@
+#!/bin/bash
+# sts-configure-machine
+# STS-specific machine setup. Run AFTER ubuntu-configure-desktop.
+#
+# Source machine: hal9000 (192.168.1.11) — must be reachable via SSH on the LAN.
+# This script is idempotent: already-completed steps are skipped.
+
+set -euo pipefail
+
+HAL9000_HOST="${HAL9000_HOST:-192.168.1.11}"
+HAL9000_USER="${HAL9000_USER:-ptonini}"
+HAL9000="$HAL9000_USER@$HAL9000_HOST"
+
+VPN_SERVER="vpn.stsrecycle.com"
+NTFY_SERVER="https://ntfy.stsrecycle.com"
+NTFY_TOPIC="ops"
+AZURE_TENANT="5a47c5ca-8e59-4af3-b24a-51541d7046fe"
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+STEPS_DONE=()
+STEPS_SKIPPED=()
+STEPS_MANUAL=()
+
+ok()     { echo -e "${GREEN}  ✓ $*${NC}"; STEPS_DONE+=("$*"); }
+skip()   { echo -e "${YELLOW}  ↷ $* (already done)${NC}"; STEPS_SKIPPED+=("$*"); }
+manual() { echo -e "${CYAN}  ✎ $* — see summary below${NC}"; STEPS_MANUAL+=("$*"); }
+fail()   { echo -e "${RED}  ✗ $*${NC}"; }
+header() { echo -e "\n${BOLD}$*${NC}"; }
+
+###############################################################################
+# Preflight: SSH connectivity to hal9000
+###############################################################################
+header "=== Preflight ==="
+echo "Checking SSH connectivity to hal9000 ($HAL9000_HOST)..."
+if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$HAL9000" true 2>/dev/null; then
+  echo -e "${RED}Cannot reach hal9000 ($HAL9000_HOST) via SSH.${NC}"
+  echo "Make sure hal9000 is on the LAN and your SSH key is in authorized_keys."
+  echo "Override host with: HAL9000_HOST=<ip> $0"
+  exit 1
+fi
+ok "hal9000 reachable"
+
+###############################################################################
+# 1. Cisco Secure Client VPN
+###############################################################################
+header "=== 1. Cisco Secure Client VPN ==="
+if [[ -x /opt/cisco/secureclient/bin/vpnagentd ]]; then
+  VERSION=$(/opt/cisco/secureclient/bin/vpnagentd --version 2>/dev/null | grep -oP 'version \K[\d.]+' || echo "unknown")
+  skip "Cisco Secure Client $VERSION already installed"
+else
+  echo "  Looking for installer on hal9000:~/Downloads/..."
+  INSTALLER=$(ssh "$HAL9000" "ls ~/Downloads/cisco-secure-client-linux64-*-core-vpn-webdeploy-k9.sh 2>/dev/null | tail -1" || true)
+  if [[ -z "$INSTALLER" ]]; then
+    fail "Installer not found on hal9000"
+    manual "Cisco Secure Client VPN: download from https://$VPN_SERVER in a browser, then run: sudo sh cisco-secure-client-linux64-*-core-vpn-webdeploy-k9.sh"
+  else
+    echo "  Copying $(basename "$INSTALLER")..."
+    scp "$HAL9000:$INSTALLER" /tmp/
+    sudo sh "/tmp/$(basename "$INSTALLER")"
+    rm -f "/tmp/$(basename "$INSTALLER")"
+    ok "Cisco Secure Client installed"
+  fi
+fi
+
+###############################################################################
+# 2. Custom home CA certificate
+###############################################################################
+header "=== 2. Custom CA certificate ==="
+CA_DEST="/usr/local/share/ca-certificates/home-ca.crt"
+if [[ -f "$CA_DEST" ]]; then
+  skip "home-ca.crt already installed"
+else
+  echo "  Copying from hal9000..."
+  sudo mkdir -p /usr/local/share/ca-certificates
+  sudo scp "$HAL9000:/usr/local/share/ca-certificates/home-ca.crt" "$CA_DEST"
+  sudo update-ca-certificates
+  ok "home-ca.crt installed"
+fi
+
+###############################################################################
+# 3. SSH key
+###############################################################################
+header "=== 3. SSH key ==="
+if [[ -f ~/.ssh/id_rsa && -f ~/.ssh/id_rsa.pub ]]; then
+  FINGERPRINT=$(ssh-keygen -lf ~/.ssh/id_rsa.pub 2>/dev/null | awk '{print $2}')
+  skip "~/.ssh/id_rsa exists ($FINGERPRINT)"
+else
+  mkdir -p ~/.ssh && chmod 700 ~/.ssh
+  echo "  No ~/.ssh/id_rsa found."
+  echo "  [1] Copy keypair from hal9000 (same GitHub/node access immediately)"
+  echo "  [2] Generate a new key (must register in GitHub and redeploy to nodes)"
+  read -rp "  Choice [1/2]: " KEY_CHOICE
+  case "$KEY_CHOICE" in
+    1)
+      scp "$HAL9000:~/.ssh/id_rsa" ~/.ssh/id_rsa
+      scp "$HAL9000:~/.ssh/id_rsa.pub" ~/.ssh/id_rsa.pub
+      chmod 600 ~/.ssh/id_rsa
+      ok "SSH keypair copied from hal9000"
+      ;;
+    2)
+      ssh-keygen -t rsa -b 3072 -f ~/.ssh/id_rsa -N ""
+      echo "  Public key:"
+      cat ~/.ssh/id_rsa.pub
+      manual "SSH key: register in GitHub with: gh ssh-key add ~/.ssh/id_rsa.pub --title \"$(hostname)\""
+      ;;
+    *)
+      fail "Invalid choice — skipping SSH key"
+      ;;
+  esac
+fi
+
+###############################################################################
+# 3b. SSH config
+###############################################################################
+header "=== 3b. SSH config ==="
+if grep -q "# STS block" ~/.ssh/config 2>/dev/null; then
+  skip "~/.ssh/config STS block already present"
+else
+  mkdir -p ~/.ssh && chmod 700 ~/.ssh
+  cat >> ~/.ssh/config <<'EOF'
+
+# STS block
+Host *.corp.stsrecycle.com
+Host 10.1.32.*
+    User itsupport
+EOF
+  chmod 600 ~/.ssh/config
+  ok "SSH config STS block added"
+fi
+
+###############################################################################
+# 4. Kubeconfigs
+###############################################################################
+header "=== 4. Kubeconfigs ==="
+MISSING_KUBE=()
+for ENV in lab beta ops prod test; do
+  [[ ! -f ~/.kube/config-sts-$ENV ]] && MISSING_KUBE+=("config-sts-$ENV")
+done
+
+if [[ ${#MISSING_KUBE[@]} -eq 0 ]]; then
+  skip "All ~/.kube/config-sts-* files present"
+else
+  mkdir -p ~/.kube
+  echo "  Copying: ${MISSING_KUBE[*]}"
+  for F in "${MISSING_KUBE[@]}"; do
+    scp "$HAL9000:~/.kube/$F" ~/.kube/
+    chmod 600 ~/.kube/"$F"
+  done
+  ok "Kubeconfigs copied (${MISSING_KUBE[*]})"
+fi
+
+###############################################################################
+# 5. GitHub CLI
+###############################################################################
+header "=== 5. GitHub CLI ==="
+if gh auth status &>/dev/null; then
+  GH_USER=$(gh api user -q .login 2>/dev/null || echo "unknown")
+  skip "gh already authenticated as $GH_USER"
+else
+  echo "  Launching gh auth login..."
+  gh auth login -p ssh -s admin:org,workflow,delete_repo -w
+  ok "gh authenticated"
+fi
+
+###############################################################################
+# 6. Azure CLI
+###############################################################################
+header "=== 6. Azure CLI ==="
+if az account show &>/dev/null; then
+  AZ_USER=$(az account show --query "user.name" -o tsv 2>/dev/null)
+  skip "az already logged in as $AZ_USER"
+else
+  echo "  Launching az login (authenticate as pedro.tonini@stsrecycle.com)..."
+  az login --tenant "$AZURE_TENANT"
+  ok "az logged in"
+fi
+
+###############################################################################
+# 7. ntfy (Ntfyr) — GUI, manual
+###############################################################################
+header "=== 7. ntfy (Ntfyr) ==="
+manual "ntfy: launch Ntfyr from app menu → add server $NTFY_SERVER → authenticate with your ntfy token → subscribe to topic '$NTFY_TOPIC'"
+
+###############################################################################
+# Summary
+###############################################################################
+header "=== Summary ==="
+[[ ${#STEPS_DONE[@]} -gt 0 ]]    && echo -e "${GREEN}Completed:${NC}"             && printf '  ✓ %s\n' "${STEPS_DONE[@]}"
+[[ ${#STEPS_SKIPPED[@]} -gt 0 ]] && echo -e "${YELLOW}Already done (skipped):${NC}" && printf '  ↷ %s\n' "${STEPS_SKIPPED[@]}"
+[[ ${#STEPS_MANUAL[@]} -gt 0 ]]  && echo -e "${CYAN}Manual steps remaining:${NC}"  && printf '  ✎ %s\n' "${STEPS_MANUAL[@]}"
+echo ""

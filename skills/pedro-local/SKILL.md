@@ -52,8 +52,16 @@ When running diagnostic shell commands, `for`-loop bodies consistently produce e
 
 ## New machine / notebook setup (STS resources)
 
-Run `ubuntu-configure-desktop` (from `ptonini/scripts`) first — it covers all base software.
-Then apply the STS-specific steps below in order.
+**Automated setup script**: `skills/sts-configure-machine` in `ptonini/scripts`.
+Run `ubuntu-configure-desktop` first, then:
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/ptonini/scripts/main/skills/sts-configure-machine)
+# or, if repo is already cloned:
+~/Projetos/ptonini/scripts/skills/sts-configure-machine
+```
+The script copies files from hal9000 (`192.168.1.11`) over SSH — hal9000 must be on the LAN.
+
+Manual reference for individual steps:
 
 ### 1. Cisco Secure Client VPN
 - **Client**: Cisco Secure Client 5.1.14.145 — installed via web deploy (no apt package).
@@ -113,14 +121,10 @@ Then apply the STS-specific steps below in order.
 - Subscribe to the `ops` topic.
 - Token: generate via `ntfy token add <user>` on the ntfy server (see ntfy skill), or ask the STS admin.
 
-### 8. ZeroTier
-- Already installed by `ubuntu-configure-desktop` (`zerotier-one`).
-- Join the org network:
-  ```bash
-  sudo zerotier-cli join 633e31d8a2ed171c
-  ```
-- Request authorization from the ZeroTier admin (ZeroTier Central or self-hosted controller).
-- Network name: `ptonini-org-network`, assigned range `10.157.24.x/24`.
+## ZeroTier (personal, not STS)
+- Networks: `633e31d8a2ed171c` (ptonini-org-network, `10.157.24.x/24`)
+- Join: `sudo zerotier-cli join 633e31d8a2ed171c` — request auth from network admin.
+- Not part of STS setup; do separately as needed.
 
 ## Warp local data
 
