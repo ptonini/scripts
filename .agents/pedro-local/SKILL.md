@@ -126,6 +126,39 @@ Manual reference for individual steps:
 - Subscribe to the `ops` topic.
 - Token: generate via `ntfy token add <user>` on the ntfy server (see ntfy skill), or ask the STS admin.
 
+### 8. STS repositories
+Clone all STS repos under `~/Projetos/stsrecycle/`:
+```bash
+mkdir -p ~/Projetos/stsrecycle
+cd ~/Projetos/stsrecycle
+gh repo clone STS-Electronic-Recycling/.github dotgithub
+gh repo clone STS-Electronic-Recycling/helm-charts
+gh repo clone STS-Electronic-Recycling/sts-devops
+gh repo clone STS-Electronic-Recycling/sts-platform
+gh repo clone STS-Electronic-Recycling/sts-services
+gh repo clone STS-Electronic-Recycling/sts-skills
+gh repo clone STS-Electronic-Recycling/terraform-modules
+```
+Post-clone setup for `sts-devops` — copy skills and gitignored var files from hal9000:
+```bash
+# Skills dir is untracked (submodule removed in PR #433) — copy from hal9000
+scp -r hal9000:~/Projetos/stsrecycle/sts-devops/.agents/skills ~/Projetos/stsrecycle/sts-devops/.agents/
+
+# Gitignored var files (copy each as needed)
+scp hal9000:~/Projetos/stsrecycle/sts-devops/ansible/.env                                          ~/Projetos/stsrecycle/sts-devops/ansible/.env
+scp hal9000:~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_lab/local.yaml       ~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_lab/local.yaml
+scp hal9000:~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_lab_lite/local.yaml  ~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_lab_lite/local.yaml
+scp hal9000:~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_beta/local.yaml      ~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_beta/local.yaml
+scp hal9000:~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_ops/local.yaml       ~/Projetos/stsrecycle/sts-devops/ansible/inventory/group_vars/sts_ops/local.yaml
+scp hal9000:~/Projetos/stsrecycle/sts-devops/terraform/general/terraform.tfvars                    ~/Projetos/stsrecycle/sts-devops/terraform/general/terraform.tfvars
+scp hal9000:~/Projetos/stsrecycle/sts-devops/terraform/xen-orchestra/terraform.tfvars              ~/Projetos/stsrecycle/sts-devops/terraform/xen-orchestra/terraform.tfvars
+```
+After cloning `sts-skills`, load the shared skills by symlinking into `~/.agents/skills/`:
+```bash
+# Link each shared skill (repeat for any skill you want loaded)
+ls ~/Projetos/stsrecycle/sts-skills/ | xargs -I{} ln -sf ~/Projetos/stsrecycle/sts-skills/{} ~/.agents/skills/{}
+```
+
 ## ZeroTier (personal, not STS)
 - Networks: `633e31d8a2ed171c` (ptonini-org-network, `10.157.24.x/24`)
 - Join: `sudo zerotier-cli join 633e31d8a2ed171c` — request auth from network admin.

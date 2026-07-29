@@ -182,9 +182,80 @@ else
 fi
 
 ###############################################################################
-# 7. ntfy (Ntfyr) — GUI, manual
+# 7. STS repositories
 ###############################################################################
-header "=== 7. ntfy (Ntfyr) ==="
+header "=== 7. STS repositories ==="
+STS_REPOS=(
+  "STS-Electronic-Recycling/.github:dotgithub"
+  "STS-Electronic-Recycling/helm-charts:helm-charts"
+  "STS-Electronic-Recycling/sts-devops:sts-devops"
+  "STS-Electronic-Recycling/sts-platform:sts-platform"
+  "STS-Electronic-Recycling/sts-services:sts-services"
+  "STS-Electronic-Recycling/sts-skills:sts-skills"
+  "STS-Electronic-Recycling/terraform-modules:terraform-modules"
+)
+mkdir -p ~/Projetos/stsrecycle
+CLONED=()
+for ENTRY in "${STS_REPOS[@]}"; do
+  REMOTE="${ENTRY%%:*}"
+  DIR="${ENTRY##*:}"
+  DEST=~/Projetos/stsrecycle/$DIR
+  if [[ -d "$DEST/.git" ]]; then
+    skip "$DIR already cloned"
+  else
+    gh repo clone "$REMOTE" "$DEST"
+    CLONED+=("$DIR")
+  fi
+done
+[[ ${#CLONED[@]} -gt 0 ]] && ok "Cloned: ${CLONED[*]}"
+
+# sts-devops: copy untracked skills dir and gitignored var files from hal9000
+if [[ -d ~/Projetos/stsrecycle/sts-devops && ! -d ~/Projetos/stsrecycle/sts-devops/.agents/skills ]]; then
+  echo "  Copying sts-devops/.agents/skills from hal9000..."
+  mkdir -p ~/Projetos/stsrecycle/sts-devops/.agents
+  scp -r "$HAL9000:~/Projetos/stsrecycle/sts-devops/.agents/skills" ~/Projetos/stsrecycle/sts-devops/.agents/
+  ok "sts-devops skills dir copied"
+fi
+
+VAR_FILES=(
+  "ansible/.env"
+  "ansible/inventory/group_vars/sts_lab/local.yaml"
+  "ansible/inventory/group_vars/sts_lab_lite/local.yaml"
+  "ansible/inventory/group_vars/sts_beta/local.yaml"
+  "ansible/inventory/group_vars/sts_ops/local.yaml"
+  "terraform/general/terraform.tfvars"
+  "terraform/xen-orchestra/terraform.tfvars"
+)
+if [[ -d ~/Projetos/stsrecycle/sts-devops ]]; then
+  for F in "${VAR_FILES[@]}"; do
+    DEST=~/Projetos/stsrecycle/sts-devops/$F
+    if [[ -f "$DEST" ]]; then
+      skip "sts-devops/$F already present"
+    else
+      mkdir -p "$(dirname "$DEST")"
+      scp "$HAL9000:~/Projetos/stsrecycle/sts-devops/$F" "$DEST" && ok "sts-devops/$F copied" || fail "sts-devops/$F not found on hal9000"
+    fi
+  done
+fi
+
+# Load sts-skills into ~/.agents/skills/
+if [[ -d ~/Projetos/stsrecycle/sts-skills ]]; then
+  mkdir -p ~/.agents/skills
+  ls ~/Projetos/stsrecycle/sts-skills/ | while read -r SKILL; do
+    TARGET=~/.agents/skills/$SKILL
+    if [[ -e "$TARGET" || -L "$TARGET" ]]; then
+      skip "skill $SKILL already linked"
+    else
+      ln -s ~/Projetos/stsrecycle/sts-skills/$SKILL "$TARGET"
+    fi
+  done
+  ok "sts-skills symlinked into ~/.agents/skills/"
+fi
+
+###############################################################################
+# 8. ntfy (Ntfyr) — GUI, manual
+###############################################################################
+header "=== 8. ntfy (Ntfyr) ==="
 manual "ntfy: launch Ntfyr from app menu → add server $NTFY_SERVER → authenticate with your ntfy token → subscribe to topic '$NTFY_TOPIC'"
 
 ###############################################################################
