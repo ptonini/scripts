@@ -40,26 +40,31 @@ SSH key for K3s nodes: `~/.ssh/id_rsa`
 
 ## Personal repositories
 
-`ptonini/scripts` (`~/Projetos/ptonini/scripts`) is a personal scripts repo on `main`. It does not follow the STS branch+PR workflow — commit and push directly to `main`. The pedro-local skill lives at `skills/pedro-local/SKILL.md` within this repo, symlinked from `~/.agents/skills/pedro-local/SKILL.md`.
+`ptonini/scripts` (`~/Projetos/ptonini/scripts`) is a personal scripts repo on `main`. It does not follow the STS branch+PR workflow — commit and push directly to `main`. The pedro-local skill lives at `.agents/pedro-local/SKILL.md` within this repo, symlinked from `~/.agents/skills/pedro-local/SKILL.md`.
 
 ## Session-derived rules
 
 ### Session review scope in personal repos
-When a session-review is triggered while working in a personal repo or folder (e.g. `ptonini/scripts`), update **only** this personal skill (`pedro-local/SKILL.md`) — do not open branches or PRs in `sts-skills`. Edit the file directly at `~/Projetos/ptonini/scripts/skills/pedro-local/SKILL.md` and commit to `main`.
+When a session-review is triggered while working in a personal repo or folder (e.g. `ptonini/scripts`), update **only** this personal skill (`pedro-local/SKILL.md`) — do not open branches or PRs in `sts-skills`. Edit the file directly at `~/Projetos/ptonini/scripts/.agents/pedro-local/SKILL.md` and commit to `main`.
 
 ### Shell for-loop output is silently empty — use single-line commands
 When running diagnostic shell commands, `for`-loop bodies consistently produce empty output in the tool results even when the loop logic is correct. Always prefer single-line, pipe-based equivalents (e.g. `dpkg -l pkg1 pkg2 | grep ^ii`, `comm -23 <(...) <(...)`, `ls /path/a /path/b 2>&1`) over loops with conditional `echo` statements.
 
 ## New machine / notebook setup (STS resources)
 
-**Automated setup script**: `skills/sts-configure-machine` in `ptonini/scripts`.
+**Automated setup script**: `.agents/sts-configure-machine` in `ptonini/scripts`.
 Run `ubuntu-configure-desktop` first, then:
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/ptonini/scripts/main/skills/sts-configure-machine)
+bash <(curl -fsSL https://raw.githubusercontent.com/ptonini/scripts/main/.agents/sts-configure-machine)
 # or, if repo is already cloned:
-~/Projetos/ptonini/scripts/skills/sts-configure-machine
+~/Projetos/ptonini/scripts/.agents/sts-configure-machine
 ```
 The script copies files from hal9000 (`192.168.1.11`) over SSH — hal9000 must be on the LAN.
+
+To load the pedro-local skill on a new machine after cloning:
+```bash
+ln -s ~/Projetos/ptonini/scripts/.agents/pedro-local ~/.agents/skills/pedro-local
+```
 
 Manual reference for individual steps:
 
