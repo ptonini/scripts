@@ -38,6 +38,18 @@ SSH key for K3s nodes: `~/.ssh/id_rsa`
 
 - **Do not suggest sending ntfy notifications.** Pedro does not use ntfy for manual notifications — skip any suggestion to curl/post to `ntfy.stsrecycle.com` as part of task completion steps.
 
+## Personal repositories
+
+`ptonini/scripts` (`~/Projetos/ptonini/scripts`) is a personal scripts repo on `main`. It does not follow the STS branch+PR workflow — commit and push directly to `main`. The pedro-local skill lives at `skills/pedro-local/SKILL.md` within this repo, symlinked from `~/.agents/skills/pedro-local/SKILL.md`.
+
+## Session-derived rules
+
+### Session review scope in personal repos
+When a session-review is triggered while working in a personal repo or folder (e.g. `ptonini/scripts`), update **only** this personal skill (`pedro-local/SKILL.md`) — do not open branches or PRs in `sts-skills`. Edit the file directly at `~/Projetos/ptonini/scripts/skills/pedro-local/SKILL.md` and commit to `main`.
+
+### Shell for-loop output is silently empty — use single-line commands
+When running diagnostic shell commands, `for`-loop bodies consistently produce empty output in the tool results even when the loop logic is correct. Always prefer single-line, pipe-based equivalents (e.g. `dpkg -l pkg1 pkg2 | grep ^ii`, `comm -23 <(...) <(...)`, `ls /path/a /path/b 2>&1`) over loops with conditional `echo` statements.
+
 ## Warp local data
 
 Warp SQLite database (conversations, sessions, ai_queries): `~/.local/state/warp-terminal/warp.sqlite`
