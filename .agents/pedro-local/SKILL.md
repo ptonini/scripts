@@ -42,6 +42,24 @@ SSH key for K3s nodes: `~/.ssh/id_rsa`
 
 `ptonini/scripts` (`~/Projetos/ptonini/scripts`) is a personal scripts repo on `main`. It does not follow the STS branch+PR workflow — commit and push directly to `main`. The pedro-local skill lives at `.agents/pedro-local/SKILL.md` within this repo, symlinked from `~/.agents/skills/pedro-local/SKILL.md`.
 
+## Hardware — hal9000
+
+**Motherboard**: Gigabyte Z590 UD AC (Intel Z590 chipset, LGA1200). 3x M.2 slots: `M2P_CPU` (CPU-direct, PCIe 4.0 x4), `M2A_SB` and `M2M_SB` (chipset, PCIe 3.0 x4/x2). GPU: NVIDIA RTX 3060 (Lite Hash Rate).
+
+**NVMe drives** (all XPG GAMMIX S70 BLADE — identify by serial + PCI address, not `/dev/nvmeX` name, which is not stable across reboots on this machine):
+
+| Serial | Capacity | Content | M.2 slot | PCI address |
+|---|---|---|---|---|
+| `2N372LAG94RW` | 2TB | Windows data volume ("Jogos") | `M2P_CPU` (CPU-direct) | `02:00.0` |
+| `2M422LQBDHXU` | 512GB | Windows system disk ("Sistema") + Windows-native ESP (UUID `CA29-C244`) | `M2A_SB` or `M2M_SB` (chipset) | `06:00.0` |
+| `2M402LAJNBFF` | 512GB | **This Linux install** — ext4 root (UUID `ceaa83d0-f74c-494b-900b-205c7d572021`) + own ESP (UUID `93D6-1FBA`) | `M2A_SB` or `M2M_SB` (chipset) | `07:00.0` |
+
+Exact `M2A_SB` vs `M2M_SB` assignment for the two chipset slots is unresolved — check the BIOS storage config page or PCB silkscreen if it matters.
+
+**Boot configuration**: Linux boots from its own dedicated ESP (UUID `93D6-1FBA`) independent of the Windows disk — `/etc/fstab` and GRUB (`grub-install --bootloader-id=ubuntu`) point there. UEFI `BootOrder` is `Ubuntu` (NVRAM entry `Boot0007`) first, `Windows Boot Manager` (`Boot0000`) second, 2-second timeout. The Windows ESP (`CA29-C244`) was restored to Microsoft-only content (no leftover GRUB/shim files).
+
+**Gotcha**: `/dev/nvmeXn1` naming is **not stable** across reboots on this machine — PCIe enumeration order shifts. Always resolve disks by UUID (`mount UUID=...`, `/etc/fstab` already does this correctly) or by serial/PCI address (`ls -l /dev/disk/by-id/`, `readlink -f /sys/class/nvme/nvmeX/device`). Never hardcode `/dev/nvme0n1` etc. in scripts or commands for this host.
+
 ## Session-derived rules
 
 ### Session review scope in personal repos
