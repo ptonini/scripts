@@ -185,5 +185,82 @@ ls ~/Projetos/stsrecycle/sts-skills/ | xargs -I{} ln -sf ~/Projetos/stsrecycle/s
 ## Warp local data
 
 Warp SQLite database (conversations, sessions, ai_queries): `~/.local/state/warp-terminal/warp.sqlite`
-- Use `sqlite3` CLI or `python3`
+- Use `sqlite3` CLI or `python3` (`sqlite3` CLI is often not installed on this machine — use
+  `python3 -c "import sqlite3; ..."` instead)
 - Key tables: `agent_conversations` (metadata, artifacts, summary), `ai_queries` (all user turns with timestamps per conversation)
+- `ai_queries` columns: `conversation_id`, `start_ts` (DATETIME), `working_directory`, `input`
+  (JSON array; extract via `item['Query']['text']` for the first dict containing `"Query"`)
+- `agent_conversations.summary` is JSON with `initial_query`, `title`, `initial_working_directory` —
+  use `title` as a quick label for what a conversation was about
+
+## STS DS Weekly Timesheet
+
+Reconstructs a week of actual work into `STS_DS_Weekly_Timesheet_Pedro_Tonini_<date>.xlsx`
+(kept in `~/Downloads`) by mining the Warp SQLite database above — no manual log needed.
+
+**Building the week's task list:**
+1. Query `ai_queries` filtered by `date(start_ts)` for the target week (Mon–Fri, or through
+   "today" if the week is in progress).
+2. Group rows by `conversation_id`. If a single conversation's queries span multiple calendar
+   dates, split it into one entry per date.
+3. Estimate hours per entry from the span between the first and last query timestamp in that
+   date/conversation group. Single-query or very short groups still represent real (if brief)
+   engaged time — do not report 0.
+4. Exclude personal/non-work conversations (home hardware, personal networking, personal
+   tooling, etc.) and the meta-conversation about building the timesheet itself, unless asked
+   to include them.
+5. Write one plain-language sentence per entry for the "What you worked on" column —
+   specific enough that a teammate who wasn't in the room understands the outcome.
+
+Default to real quarter-hour estimates rather than rounding up. Only round hours up to whole
+numbers, or scale entries to fill 8h/day, when explicitly asked — apply the adjustment
+per entry, not just to the day/week total.
+
+**Workbook structure (Timesheet / Lists / Export / Instructions tabs)** — data validation
+is strict; `openpyxl` won't raise an error for invalid values, but they'll be flagged
+downstream. Check `ws.data_validations.dataValidation` on a new template before assuming
+column rules, but as of this writing:
+- `Timesheet!B6` (Week Ending) — must be a Friday; the `Lists!E2:E8` "Week Dates" range
+  and the `G9:H17` daily-totals block both derive from this cell.
+- `Timesheet!B10:B59` (Category) — list-validated against `Lists!A2:A5`, a **fixed
+  four-value list**: `Project Work`, `Support`, `Overhead`, `Time Off`. Do not invent
+  sub-categories (e.g. "DevOps/CI"). Map each task to the closest of the four:
+  - `Support` — reactive/break-fix work, alerts, access requests, ops maintenance
+  - `Project Work` — planned build-out, new capability, deliberate design/implementation
+  - `Overhead` — meetings, admin, internal process
+  - `Time Off` — PTO
+- `Timesheet!C10:C59` (Hours) — custom-validated as `AND(C>0, C<=16, MOD(C,0.25)=0)` —
+  quarter-hour increments only.
+- `Timesheet!E10:E59` (Check) — formula-driven; never overwrite, it self-populates once
+  A–D are filled.
+- `Export` tab — flattens `Timesheet` rows via formulas referencing fixed row offsets;
+  never edit it directly.
+
+**Creating a new week's file** — copy the most recently completed week's file (not a
+blank template) as the base, since it already carries correct formulas/validation and `B3`:
+```bash
+cp "<previous week file>.xlsx" "<new week file>.xlsx"
+```
+Then with `openpyxl`: set `Timesheet!B6` to the new Week Ending (Friday) date; clear existing
+entries in `A10:D59` (loop, set to `None`) before writing new ones; write
+`(date, category, hours, description)` starting at row 10; save — formulas in columns E
+and G:H recompute automatically in Excel/LibreOffice on open.
+
+`.xlsx` files are zip containers and can't be read with the generic file-reading tool
+(unsupported MIME type `application/zip`) — always inspect/edit them with a `python3` +
+`openpyxl` one-liner via the shell instead. After every save, re-verify with a **fresh,
+independent** `python3` read (separate command, full `10–59` row scan) rather than trusting
+an in-script reload — `openpyxl` clears/writes have intermittently failed to persist on
+this machine while an immediate in-process re-read still showed the correct (unsaved) content.
+
+**File naming:** `STS_DS_Weekly_Timesheet_Pedro_Tonini_YYYY-MM-DD.xlsx`, date = the Friday
+Week Ending date, saved to `~/Downloads`.
+
+**Workflow checklist:**
+1. Determine the target week's Monday–Friday date range (Week Ending = the Friday).
+2. Query and group `ai_queries` for that range; exclude personal/meta entries.
+3. Draft entries (date, category, hours, description) and show them before writing the file,
+   since categorization and hour estimates are judgment calls worth a quick review.
+4. Copy the prior week's `.xlsx` as the base, update `B6`, clear old rows, write new entries.
+5. Apply follow-up edits (rounding, category fixes, renames, filling to 8h/day) directly to
+   the same file rather than regenerating it from scratch, and re-verify with a fresh read.
