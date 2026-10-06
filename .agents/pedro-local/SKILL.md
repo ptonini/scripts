@@ -38,6 +38,8 @@ SSH key for K3s nodes: `~/.ssh/id_rsa`
 
 - **Do not suggest sending ntfy notifications.** Pedro does not use ntfy for manual notifications — skip any suggestion to curl/post to `ntfy.stsrecycle.com` as part of task completion steps.
 
+- **Use standard dashes.** When generating text or code, use standard ASCII hyphens (`-`) instead of Unicode dashes (`—`, `–`, `\u2014`, `\u2013`) to ensure compatibility with all tools and parsers.
+
 ## Personal repositories
 
 `ptonini/scripts` (`~/Projetos/ptonini/scripts`) is a personal scripts repo on `main`. It does not follow the STS branch+PR workflow — commit and push directly to `main`. The pedro-local skill lives at `.agents/pedro-local/SKILL.md` within this repo, symlinked from `~/.agents/skills/pedro-local/SKILL.md`.
@@ -66,7 +68,7 @@ Exact `M2A_SB` vs `M2M_SB` assignment for the two chipset slots is unresolved �
 When a session-review is triggered while working in a personal repo or folder (e.g. `ptonini/scripts`), update **only** this personal skill (`pedro-local/SKILL.md`) — do not open branches or PRs in `sts-skills`. Edit the file directly at `~/Projetos/ptonini/scripts/.agents/pedro-local/SKILL.md` and commit to `main`.
 
 ### Shell for-loop output is silently empty — use single-line commands
-When running diagnostic shell commands, `for`-loop bodies consistently produce empty output in the tool results even when the loop logic is correct. Always prefer single-line, pipe-based equivalents (e.g. `dpkg -l pkg1 pkg2 | grep ^ii`, `comm -23 <(...) <(...)`, `ls /path/a /path/b 2>&1`) over loops with conditional `echo` statements.
+When running diagnostic shell commands in Warp, `for`-loop bodies consistently produce empty output in the tool results even when the loop logic is correct (not yet confirmed in other agents - if loops work in Claude Desktop, drop this rule's Warp scoping). Always prefer single-line, pipe-based equivalents (e.g. `dpkg -l pkg1 pkg2 | grep ^ii`, `comm -23 <(...) <(...)`, `ls /path/a /path/b 2>&1`) over loops with conditional `echo` statements.
 
 ## New machine / notebook setup (STS resources)
 
@@ -182,7 +184,11 @@ ls ~/Projetos/stsrecycle/sts-skills/ | xargs -I{} ln -sf ~/Projetos/stsrecycle/s
 - Join: `sudo zerotier-cli join 633e31d8a2ed171c` — request auth from network admin.
 - Not part of STS setup; do separately as needed.
 
-## Warp local data
+## Local conversation history
+
+Pedro works in more than one agent (Warp and Claude Desktop). Reconstruct work from every agent used in the period, not just one.
+
+### Warp
 
 Warp SQLite database (conversations, sessions, ai_queries): `~/.local/state/warp-terminal/warp.sqlite`
 - Use `sqlite3` CLI or `python3` (`sqlite3` CLI is often not installed on this machine — use
@@ -193,15 +199,23 @@ Warp SQLite database (conversations, sessions, ai_queries): `~/.local/state/warp
 - `agent_conversations.summary` is JSON with `initial_query`, `title`, `initial_working_directory` —
   use `title` as a quick label for what a conversation was about
 
+### Claude Desktop
+
+Use the session-management tools rather than reading app storage files. They are deferred, so load
+them with `ToolSearch` (`select:<name>`) first: `mcp__ccd_session_mgmt__list_sessions`,
+`search_session_transcripts`, `list_events`, `export_transcript`. Session title and working
+directory stand in for Warp's `title` and `working_directory`.
+
 ## STS DS Weekly Timesheet
 
 Reconstructs a week of actual work into `STS_DS_Weekly_Timesheet_Pedro_Tonini_<date>.xlsx`
-(kept in `~/Downloads`) by mining the Warp SQLite database above — no manual log needed.
+(kept in `~/Downloads`) by mining local agent conversation history (the Warp database and Claude Desktop sessions above) — no manual log needed.
 
 **Building the week's task list:**
-1. Query `ai_queries` filtered by `date(start_ts)` for the target week (Mon–Fri, or through
-   "today" if the week is in progress).
-2. Group rows by `conversation_id`. If a single conversation's queries span multiple calendar
+1. Collect user turns for the target week (Mon–Fri, or through "today" if the week is in
+   progress) from every agent source: Warp `ai_queries` filtered by `date(start_ts)`, and Claude
+   Desktop session events by timestamp.
+2. Group turns by `conversation_id` (Desktop: session id). If a single conversation's queries span multiple calendar
    dates, split it into one entry per date.
 3. Estimate hours per entry from the span between the first and last query timestamp in that
    date/conversation group. Single-query or very short groups still represent real (if brief)
@@ -258,7 +272,7 @@ Week Ending date, saved to `~/Downloads`.
 
 **Workflow checklist:**
 1. Determine the target week's Monday–Friday date range (Week Ending = the Friday).
-2. Query and group `ai_queries` for that range; exclude personal/meta entries.
+2. Collect and group user turns from all agent sources for that range; exclude personal/meta entries.
 3. Draft entries (date, category, hours, description) and show them before writing the file,
    since categorization and hour estimates are judgment calls worth a quick review.
 4. Copy the prior week's `.xlsx` as the base, update `B6`, clear old rows, write new entries.
