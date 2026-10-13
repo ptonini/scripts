@@ -70,6 +70,15 @@ When a session-review is triggered while working in a personal repo or folder (e
 ### Shell for-loop output is silently empty — use single-line commands
 When running diagnostic shell commands in Warp, `for`-loop bodies consistently produce empty output in the tool results even when the loop logic is correct (not yet confirmed in other agents - if loops work in Claude Desktop, drop this rule's Warp scoping). Always prefer single-line, pipe-based equivalents (e.g. `dpkg -l pkg1 pkg2 | grep ^ii`, `comm -23 <(...) <(...)`, `ls /path/a /path/b 2>&1`) over loops with conditional `echo` statements.
 
+**Update 10-13-2026:** `for` loops (including `for p in ...; do curl ... | python3 -c ...; done`) printed normal output in Warp on this machine during a long session, so the loop-specific claim above no longer holds. The failures actually seen are the next two rules.
+
+### Long jobs, tool timeouts and `/tmp` on this machine (10-13-2026)
+- A detached job survives: `setsid nohup python3 /tmp/job.py > /tmp/job.log 2>&1 < /dev/null &` (a 92-minute Elasticsearch merge run was polled from separate short commands). Poll with `sleep` of 290 seconds or less - commands running past about 5 minutes are often cancelled (`{"cancelled":true}`), and a cancelled command may not have run at all, so re-check state before retrying.
+- `/tmp` is cleared between days: `/tmp/ops-es-ca.crt` and helper scripts disappear. Regenerate them (the CA from the `ops-es-http-certs-public` secret) instead of assuming they exist.
+
+### Tool output is often truncated after a Python heredoc
+When one command runs a `python3 - <<'PY' ... PY` block and then more `echo`/`curl` sections, the output frequently ends right after the heredoc and the later sections are missing (looks like "empty" results). Put the Python in a script file (`create_file` then `python3 /tmp/x.py`) or run the later sections as separate commands, and keep each command's output small.
+
 ## New machine / notebook setup (STS resources)
 
 **Automated setup script**: `.agents/sts-configure-machine` in `ptonini/scripts`.
@@ -198,6 +207,12 @@ Warp SQLite database (conversations, sessions, ai_queries): `~/.local/state/warp
   (JSON array; extract via `item['Query']['text']` for the first dict containing `"Query"`)
 - `agent_conversations.summary` is JSON with `initial_query`, `title`, `initial_working_directory` —
   use `title` as a quick label for what a conversation was about
+- `ai_queries.start_ts` is **UTC**. This machine's shell clock (`date`, and times printed by commands in tool
+  output) is **UTC-3**, and the STS reporting zone is Central (CDT, UTC-5) - convert deliberately when correlating.
+- A past session's tool OUTPUT (not just the prompts) is stored in `agent_tasks.task` BLOBs (filter by
+  `agent_tasks.conversation_id`; individual rows reach ~2 MB), not in the small
+  `agent_conversations.conversation_data`. Decode with `errors='ignore'` and regex for a keyword (e.g. `heap`)
+  to recover figures a previous session printed.
 
 ### Claude Desktop
 
