@@ -7,8 +7,7 @@ set -euo pipefail
 #   -> "One Pace - 01x<counter> - Orange Town 01 [8-11][CBFE01C7].mkv"
 #
 # Files are processed in natural (version) sort order and the counter is
-# incremented for each renamed file. Episodes listed in EPISODE_OVERRIDES
-# always get their fixed number and do not consume a counter value.
+# incremented for each renamed file.
 #
 # Usage: one-pace-rename [OPTIONS] <dir>
 #
@@ -20,15 +19,9 @@ set -euo pipefail
 #   -h            Show this help
 
 usage() {
-  sed -n '4,20p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '4,19p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
-
-# Fixed episode numbers, keyed by the chapter range in the source file name.
-declare -A EPISODE_OVERRIDES=(
-  ["35-75"]=36
-  ["83-119"]=43
-)
 
 COUNTER=1
 SEASON="01"
@@ -90,22 +83,13 @@ for NAME in "${FILES[@]}"; do
   HASH="${BASH_REMATCH[3]}"
   EXT="${BASH_REMATCH[4]}"
 
-  if [[ -n "${EPISODE_OVERRIDES[$CHAPTERS]:-}" ]]; then
-    NUMBER="${EPISODE_OVERRIDES[$CHAPTERS]}"
-    USES_COUNTER=0
-  else
-    NUMBER="$COUNTER"
-    USES_COUNTER=1
-  fi
-
-  EPISODE=$(printf "%0${PAD}d" "$((10#$NUMBER))")
+  EPISODE=$(printf "%0${PAD}d" "$((10#$COUNTER))")
   NEW_NAME="One Pace - ${SEASON}x${EPISODE} - ${TITLE} [${CHAPTERS}][${HASH}].${EXT}"
-
-  [[ $USES_COUNTER -eq 1 ]] && COUNTER=$((10#$COUNTER + 1))
 
   if [[ -e "$DIR/$NEW_NAME" ]]; then
     echo "Skip (target exists): $NEW_NAME" >&2
     skipped=$((skipped + 1))
+    COUNTER=$((10#$COUNTER + 1))
     continue
   fi
 
@@ -115,6 +99,7 @@ for NAME in "${FILES[@]}"; do
   fi
 
   renamed=$((renamed + 1))
+  COUNTER=$((10#$COUNTER + 1))
 done
 
 echo ""
