@@ -7,7 +7,8 @@ set -euo pipefail
 #   -> "One Pace - 01x<counter> - Orange Town 01 [8-11][CBFE01C7].mkv"
 #
 # Files are processed in natural (version) sort order and the counter is
-# incremented for each renamed file.
+# incremented for each renamed file. Some episodes are moved to a fixed
+# position first (see REORDER).
 #
 # Usage: one-pace-rename [OPTIONS] <dir>
 #
@@ -19,7 +20,7 @@ set -euo pipefail
 #   -h            Show this help
 
 usage() {
-  sed -n '4,19p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '4,20p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -67,6 +68,46 @@ if [[ ${#FILES[@]} -eq 0 ]]; then
   echo "No One Pace files found in $DIR."
   exit 0
 fi
+
+# Hardcoded order fixes, as "<chapters>:<chapters it must come after>".
+# Applied after sorting, so the counter numbers files in the fixed order.
+REORDER=(
+  "35-75:94-95"
+  "83-119:110-114"
+)
+
+for RULE in "${REORDER[@]}"; do
+  SRC="${RULE%%:*}"
+  ANCHOR="${RULE#*:}"
+
+  SRC_FILE=""
+  REST=()
+  for f in "${FILES[@]}"; do
+    if [[ -z "$SRC_FILE" && "$f" == "[One Pace][$SRC] "* ]]; then
+      SRC_FILE="$f"
+    else
+      REST+=("$f")
+    fi
+  done
+  [[ -z "$SRC_FILE" ]] && continue
+
+  REORDERED=()
+  placed=0
+  for f in "${REST[@]}"; do
+    REORDERED+=("$f")
+    if [[ $placed -eq 0 && "$f" == "[One Pace][$ANCHOR] "* ]]; then
+      REORDERED+=("$SRC_FILE")
+      placed=1
+    fi
+  done
+
+  if [[ $placed -eq 0 ]]; then
+    echo "Warning: [$ANCHOR] not found, leaving [$SRC] in sorted position." >&2
+    continue
+  fi
+
+  FILES=("${REORDERED[@]}")
+done
 
 renamed=0
 skipped=0
