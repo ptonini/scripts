@@ -1,0 +1,110 @@
+#!/bin/bash
+set -euo pipefail
+
+# Batch rename One Pace release files.
+#
+#   "[One Pace][8-11] Orange Town 01 [1080p][CBFE01C7].mkv"
+#   -> "One Pace - 01x<counter> - Orange Town 01 [8-11][CBFE01C7].mkv"
+#
+# Files are processed in natural (version) sort order and the counter is
+# incremented for each renamed file.
+#
+# Usage: one-pace-rename [OPTIONS] <dir>
+#
+# Options:
+#   -c <number>   Counter start value (default: 1)
+#   -s <season>   Season number (default: 01)
+#   -p <width>    Zero-pad width for the counter (default: 2)
+#   -n            Dry run: only print what would be renamed
+#   -h            Show this help
+
+usage() {
+  sed -n '4,19p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-0}"
+}
+
+COUNTER=1
+SEASON="01"
+PAD=2
+DRY_RUN=0
+
+while getopts ":c:s:p:nh" opt; do
+  case "$opt" in
+    c) COUNTER="$OPTARG" ;;
+    s) SEASON="$OPTARG" ;;
+    p) PAD="$OPTARG" ;;
+    n) DRY_RUN=1 ;;
+    h) usage 0 ;;
+    :) echo "Error: -$OPTARG requires a value." >&2; usage 1 ;;
+    *) echo "Error: invalid option -$OPTARG" >&2; usage 1 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+DIR="${1:-}"
+
+if [[ -z "$DIR" ]]; then
+  echo "Error: directory is required." >&2
+  usage 1
+fi
+
+if [[ ! -d "$DIR" ]]; then
+  echo "Error: directory not found: $DIR" >&2
+  exit 1
+fi
+
+if ! [[ "$COUNTER" =~ ^[0-9]+$ && "$PAD" =~ ^[0-9]+$ ]]; then
+  echo "Error: -c and -p must be non-negative integers." >&2
+  exit 1
+fi
+
+# [One Pace][<chapters>] <title> [<resolution>][<hash>].<ext>
+PATTERN='^\[One Pace\]\[([^]]+)\] (.+) \[[^]]+\]\[([^]]+)\]\.([^.]+)$'
+
+mapfile -t FILES < <(find "$DIR" -maxdepth 1 -type f -name '\[One Pace\]*' -printf '%f\n' | sort -V)
+
+if [[ ${#FILES[@]} -eq 0 ]]; then
+  echo "No One Pace files found in $DIR."
+  exit 0
+fi
+
+renamed=0
+skipped=0
+
+for NAME in "${FILES[@]}"; do
+  if [[ ! "$NAME" =~ $PATTERN ]]; then
+    echo "Skip (no match): $NAME" >&2
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  CHAPTERS="${BASH_REMATCH[1]}"
+  TITLE="${BASH_REMATCH[2]}"
+  HASH="${BASH_REMATCH[3]}"
+  EXT="${BASH_REMATCH[4]}"
+
+  EPISODE=$(printf "%0${PAD}d" "$((10#$COUNTER))")
+  NEW_NAME="One Pace - ${SEASON}x${EPISODE} - ${TITLE} [${CHAPTERS}][${HASH}].${EXT}"
+
+  if [[ -e "$DIR/$NEW_NAME" ]]; then
+    echo "Skip (target exists): $NEW_NAME" >&2
+    skipped=$((skipped + 1))
+    COUNTER=$((10#$COUNTER + 1))
+    continue
+  fi
+
+  echo "$NAME -> $NEW_NAME"
+  if [[ $DRY_RUN -eq 0 ]]; then
+    mv -n -- "$DIR/$NAME" "$DIR/$NEW_NAME"
+  fi
+
+  renamed=$((renamed + 1))
+  COUNTER=$((10#$COUNTER + 1))
+done
+
+echo ""
+if [[ $DRY_RUN -eq 1 ]]; then
+  echo "Dry run: $renamed file(s) would be renamed, $skipped skipped."
+else
+  echo "Done: $renamed file(s) renamed, $skipped skipped."
+fi
